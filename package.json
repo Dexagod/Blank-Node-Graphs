@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@jeswr/rdfjs-sign": "^1.3.1"
+  }
+}
