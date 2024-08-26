@@ -3,6 +3,24 @@ import { DataFactory, Quad, Quad_Graph, Store, Term, Triple } from "n3";
 
 export const RDFDatasetURI = RDF.NAMESPACE+"Dataset"
 export const RDFContainsURI = RDF.NAMESPACE+"contains"
+const SIGNATUREONTOLOGYNAMESPACE = 'https://example.org/ns/sign/'
+
+export const CRYPTOSUITE = "eddsa-rdfc-2022"
+
+export const SignOntology = {
+    NAMESPACE: SIGNATUREONTOLOGYNAMESPACE,
+    DataIntegrityProof: SIGNATUREONTOLOGYNAMESPACE+"DataIntegrityProof",
+    created:  SIGNATUREONTOLOGYNAMESPACE+"created",
+    issuer:  SIGNATUREONTOLOGYNAMESPACE+"issuer",
+    cryptosuite:  SIGNATUREONTOLOGYNAMESPACE+"cryptosuite",
+    verificationMethod:  SIGNATUREONTOLOGYNAMESPACE+"verificationMethod",
+    proofPurpose:  SIGNATUREONTOLOGYNAMESPACE+"proofPurpose",
+    proofValue:  SIGNATUREONTOLOGYNAMESPACE+"proofValue",
+    contentManipulation:  SIGNATUREONTOLOGYNAMESPACE+"contentManipulation",
+    target:  SIGNATUREONTOLOGYNAMESPACE+"target",
+    hashMethod:  SIGNATUREONTOLOGYNAMESPACE+"hashMethod",
+    canonicalizationMethod: SIGNATUREONTOLOGYNAMESPACE+"canonicalizationMethod",
+}
 
 export enum ContainmentType {
     Dataset,
