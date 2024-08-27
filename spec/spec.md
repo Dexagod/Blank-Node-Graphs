@@ -19,16 +19,17 @@ we use the following interpretation for the concept of Named Graph in RDF.
 
 *A **Named Graph** denotes a (name, graph) pair, where the name defines the boundary for the context of the graph. If the graph name is a blank node, the graph is defined in the local scope. If the graph name is a URL, the graph is defined in the scope of that URL.*
 
-This entails that a named graph with a URL as its name value can only ever be considered as complete within the confines of the resource defined by the URL of the named graph. A Graph with a blank node as its name value is always considered as complete within the confines of the local scope.
+This entails that a named graph with a named node as its name value can only ever be considered as complete within the confines of the its URL domain. A Graph with a blank node as its name value is always considered as complete within the confines of the local scope.
 
 ### RDF Dataset
 This same document [on semantics of RDF Datasets](https://www.w3.org/TR/rdf11-datasets/),
 defines possible semantics for RDF datasets based on the RDF Graph semantics.
 
+The RDF Dataset should be viewed as a virtualization of the concept of an RDF document containing graphs of RDF data.
 Based on the interpretation of the RDF Graph concept defined above, 
 we use the following interpretation for an RDF Dataset:
 
-*An **RDF Dataset** denotes a containment relation between a containing entity and a set of contained RDF Graphs. Different named graphs indicate different contexts and the triples inside a named graph are assumed to be true in the associated context only. The default graph is to be interpreted as operating in the global context and the triples inside are always assumed to be true in this global context.*
+*An **RDF Dataset** denotes a containment relation between a containing dataset entity and a set of contained RDF Graphs. Different named graphs indicate different contexts and the triples inside a named graph are assumed to be true in the associated context only. The default graph is to be interpreted as operating in the global context and the triples inside are always assumed to be true in this global context.*
 
 
 ## Vacabulary

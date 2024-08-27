@@ -14,6 +14,7 @@ This will run the available tests, and output a console log of a flow located at
 This executes the following flow:
 
 1. retrieving `https://pod.rubendedecker.be/profile/card`
+<<<<<<< HEAD
    * content graph (`_:n3-0`)
    * provenance graph (`_:n3-2`)
    * policy graph (`_:n3-8`)
@@ -24,3 +25,15 @@ This executes the following flow:
 3. creating an RDF:Dataset (`_:n3-14`) that contains these 6 graphs (`_:n3-0`, `_:n3-2`, `_:n3-8`, `_:n3-1`, `_:n3-3`, `_:n3-13`)
 4. creating a signature graph of this RDF:Dataset instance (`_:n3-17`)
    * This creates a signature of the hash of the canonicalized quads of all graphs that are contained in the dataset object WIHTOUT including the dataset and its contains triples!
+=======
+   * convert to content graph (_:n3-0)
+   * provenance graph (_:n3-2)
+   * policy graph (_:n3-8)
+2. retrieving `https://josd.github.io/card.ttl`
+   * convert to content graph (_:n3-1)
+   * provenance graph (_:n3-3)
+   * policy graph (_:n3-13)
+3. creating an RDF:Dataset (\_:n3-14) that contains these 6 graphs (_:n3-0, _:n3-2, _:n3-8, _:n3-1, _:n3-3, _:n3-13)
+4. creating a signature graph of this RDF:Dataset instance (_:n3-17)
+   * This creates a signature of the hash of the canonicalized quads of all graphs that are contained in the dataset object WIHTOUT including the dataset and its contains triples!
+>>>>>>> e1fd92a (Readme update)
