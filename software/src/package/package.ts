@@ -1,5 +1,5 @@
 import { BlankNode, DataFactory, NamedNode, Quad_Graph, Quad_Object, Store } from "n3";
-import { RDFContainsURI, RDFDatasetURI } from "../util/util";
+import { PackOntology } from "../util/util";
 import { RDF } from "@inrupt/vocab-common-rdf";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
@@ -16,13 +16,13 @@ export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_G
     const datasetSubject = blankNode()
     const containingGraphTerm = metadataGraph ?  namedNode(metadataGraph.value) : defaultGraph()
     const datasetQuads = [
-        quad(datasetSubject, namedNode(RDF.type), namedNode(RDFDatasetURI), containingGraphTerm)
+        quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
     ]
     for (let graphTerm of graphTerms) {
         if (graphTerm.equals(defaultGraph())) {
             throw new Error('Error creating dataset from graphs: cannot reference the default graph in local scope. Please rename the default graph first.')
         }
-        datasetQuads.push(quad(datasetSubject, namedNode(RDFContainsURI), graphTerm as Quad_Object, containingGraphTerm ))
+        datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphTerm as Quad_Object, containingGraphTerm ))
     }
     store.addQuads(datasetQuads)
 

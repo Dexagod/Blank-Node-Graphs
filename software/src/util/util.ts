@@ -6,8 +6,6 @@ import moment from "moment";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
-export const RDFDatasetURI = RDF.NAMESPACE+"Dataset"
-export const RDFContainsURI = RDF.NAMESPACE+"contains"
 const SIGNATUREONTOLOGYNAMESPACE = 'https://example.org/ns/sign/'
 const PACKAGEONTOLOGYNAMESPACE= 'https://example.org/ns/pack/'
 
@@ -31,6 +29,8 @@ export const PackOntology = {
     timestamp: PACKAGEONTOLOGYNAMESPACE+"timestamp",
     origin: PACKAGEONTOLOGYNAMESPACE+"origin",
     issuer: PACKAGEONTOLOGYNAMESPACE+"issuer",
+    Dataset: PACKAGEONTOLOGYNAMESPACE+"Dataset",
+    contains: PACKAGEONTOLOGYNAMESPACE+"contains",
 }
 
 export enum ContainmentType {
@@ -42,7 +42,7 @@ export enum ContainmentType {
 export function checkContainmentType(store: Store, term: Term): ContainmentType {
     if (store.getQuads(null, null, null, term).length !== 0) {
         return ContainmentType.Graph
-    } else if (store.getQuads(null, RDF.type, RDFDatasetURI, null)) {
+    } else if (store.getQuads(null, RDF.type, PackOntology.Dataset, null)) {
         return ContainmentType.Dataset
     }
     return ContainmentType.Other

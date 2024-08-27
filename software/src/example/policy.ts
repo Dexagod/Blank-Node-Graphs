@@ -42,7 +42,7 @@ export function createSimplePolicy(
         policyGraph = policyGraph.concat([
             quad(constraintSubject, namedNode(ODRL.leftOperand), namedNode(ODRL.dateTime)),
             quad(constraintSubject, namedNode(ODRL.operator), namedNode(ODRL.lt)),
-            quad(constraintSubject, namedNode(ODRL.rightOperand), literal(endDate, namedNode(XSD.duration)))
+            quad(constraintSubject, namedNode(ODRL.rightOperand), literal(endDate, namedNode(XSD.dateTime)))
         ])
         constraints.push(constraintSubject)
     }

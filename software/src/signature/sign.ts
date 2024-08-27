@@ -1,5 +1,5 @@
 import { signQuads } from "@jeswr/rdfjs-sign/dist"
-import { checkContainmentType, ContainmentType, RDFContainsURI, SignOntology } from "../util/util"
+import { PackOntology, SignOntology } from "../util/util"
 import { Store, Quad_Graph, Quad_Object, Quad, DataFactory, Triple } from "n3"
 import { RDF, XSD } from "@inrupt/vocab-common-rdf";
 
@@ -85,7 +85,7 @@ export async function createRDFDatasetSignature( store: Store, target: Quad_Obje
     verificationMethod: string,
 }) {
     // Extract contained graphs in dataset
-    const containedGraphraphsInDataset = store.getQuads(target, RDFContainsURI, null, null).map(q => q.object)
+    const containedGraphraphsInDataset = store.getQuads(target, PackOntology.contains, null, null).map(q => q.object)
     // Extract graph quads
     let combinedQuads: Quad[] = []
     for (let graphTerm of containedGraphraphsInDataset) {

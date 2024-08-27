@@ -2,7 +2,7 @@ import { createDatasetFromGraphsInStore, renameGraph } from "../../src/package/p
 import { DataFactory, Store } from "n3";
 import { RDF } from "@inrupt/vocab-common-rdf";
 import { } from "jest"
-import { RDFContainsURI, RDFDatasetURI } from "../../src";
+import { PackOntology } from "../../src";
 require('jest-rdf');
 
 
@@ -25,9 +25,9 @@ describe('createDatasetFromGraphsInStore', () => {
         const datasetSubject = quads[0].subject;
 
         expect(quads).toEqual(expect.arrayContaining([
-            quad(datasetSubject, namedNode(RDF.type), namedNode(RDFDatasetURI), defaultGraph()),
-            quad(datasetSubject, namedNode(RDFContainsURI), graphTerms[0], defaultGraph()),
-            quad(datasetSubject, namedNode(RDFContainsURI), graphTerms[1], defaultGraph())
+            quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), defaultGraph()),
+            quad(datasetSubject, namedNode(PackOntology.contains), graphTerms[0], defaultGraph()),
+            quad(datasetSubject, namedNode(PackOntology.contains), graphTerms[1], defaultGraph())
         ]));
     });
 
@@ -51,8 +51,8 @@ describe('createDatasetFromGraphsInStore', () => {
         const datasetSubject = quads[0].subject;
 
         expect(quads).toEqual(expect.arrayContaining([
-            quad(datasetSubject, namedNode(RDF.type), namedNode(RDFDatasetURI), metadataGraph),
-            quad(datasetSubject, namedNode(RDFContainsURI), graphTerms[0], metadataGraph)
+            quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), metadataGraph),
+            quad(datasetSubject, namedNode(PackOntology.contains), graphTerms[0], metadataGraph)
         ]));
     });
 });

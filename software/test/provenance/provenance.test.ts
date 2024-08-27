@@ -2,11 +2,22 @@ import { DataFactory, Store, Triple, Quad_Graph } from "n3";
 import { addProvenanceGraphToStore, createProvenanceTriples, ProvenanceInfo } from "../../src/provenance/provenance";
 import { PackOntology } from "../../src/util/util";
 import "jest-rdf";
+import { Quad_Object } from "rdf-js";
 
 const { namedNode, blankNode, quad, triple } = DataFactory;
 
 describe('addProvenanceGraphToStore', () => {
     let store: Store;
+
+    beforeAll(() => {
+        const date = new Date()
+        jest.useFakeTimers();
+        jest.setSystemTime(date);
+    });
+    
+    afterAll(() => {
+        jest.useRealTimers();
+    });
 
     beforeEach(() => {
         store = new Store();
@@ -79,9 +90,11 @@ describe('createProvenanceTriples', () => {
             origin: "http://example.org/origin"
         };
         const result = createProvenanceTriples(provenanceInfo);
+        const endDate = result.triples.find(t => t.predicate.equals(namedNode(PackOntology.timestamp)))?.object
 
         expect(result.triples).toBeRdfIsomorphic([
-            quad(provenanceInfo.target, namedNode(PackOntology.origin), namedNode(provenanceInfo.origin!))
+            quad(provenanceInfo.target, namedNode(PackOntology.origin), namedNode(provenanceInfo.origin!)),
+            quad(provenanceInfo.target, namedNode(PackOntology.timestamp), endDate as Quad_Object)
         ]);
     });
 
@@ -91,9 +104,11 @@ describe('createProvenanceTriples', () => {
             issuer: "http://example.org/issuer"
         };
         const result = createProvenanceTriples(provenanceInfo);
+        const endDate = result.triples.find(t => t.predicate.equals(namedNode(PackOntology.timestamp)))?.object
 
         expect(result.triples).toBeRdfIsomorphic([
-            quad(provenanceInfo.target, namedNode(PackOntology.issuer), namedNode(provenanceInfo.issuer!))
+            quad(provenanceInfo.target, namedNode(PackOntology.issuer), namedNode(provenanceInfo.issuer!)),
+            quad(provenanceInfo.target, namedNode(PackOntology.timestamp), endDate as Quad_Object)
         ]);
     });
 
@@ -104,10 +119,12 @@ describe('createProvenanceTriples', () => {
             issuer: "http://example.org/issuer"
         };
         const result = createProvenanceTriples(provenanceInfo);
+        const endDate = result.triples.find(t => t.predicate.equals(namedNode(PackOntology.timestamp)))?.object
 
         expect(result.triples).toBeRdfIsomorphic([
             quad(provenanceInfo.target, namedNode(PackOntology.origin), namedNode(provenanceInfo.origin!)),
-            quad(provenanceInfo.target, namedNode(PackOntology.issuer), namedNode(provenanceInfo.issuer!))
+            quad(provenanceInfo.target, namedNode(PackOntology.issuer), namedNode(provenanceInfo.issuer!)),
+            quad(provenanceInfo.target, namedNode(PackOntology.timestamp), endDate as Quad_Object)
         ]);
     });
 });
