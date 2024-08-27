@@ -2,6 +2,7 @@ import { RDF } from "@inrupt/vocab-common-rdf";
 import { DataFactory, Quad, Quad_Graph, Store, Term, Triple } from "n3";
 import { v4 as uuidv4 } from 'uuid';
 import { renameGraph } from "../package/package";
+import moment from "moment";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 

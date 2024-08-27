@@ -1,4 +1,4 @@
-import { DataFactory, Quad_Graph, Quad_Object, Quad_Subject, Store, Triple } from "n3"
+import { BlankNode, DataFactory, NamedNode, Quad_Graph, Quad_Object, Quad_Subject, Store, Triple } from "n3"
 import { PackOntology } from "../util/util";
 
 const quad = DataFactory.quad;
@@ -10,7 +10,7 @@ const literal = DataFactory.literal;
 export interface ProvenanceInfo {
     origin?: string, 
     issuer?: string,
-    target: Quad_Subject
+    target: NamedNode | BlankNode
 }
 
 export function addProvenanceGraphToStore( store: Store, provenance: Triple[], graph?: Quad_Graph) {

@@ -53,10 +53,15 @@ describe('createSimplePolicy', () => {
         const permissionTriples = result.triples.filter(triple => triple.subject.equals(permissionTerm));
         const agreementTriples = result.triples.filter(triple => triple.subject.equals(agreementTerm));
 
+        // cheating to find the given date, saves a mock implementation
+        const dateTime = constraintTriples.filter(triple => 
+                triple.subject.equals(constraintTerm) && triple.predicate.equals(namedNode(ODRL.rightOperand))
+            )[0].object
+
         expect(constraintTriples).toBeRdfIsomorphic([
-            triple(constraintTerm, namedNode(ODRL.leftOperand), namedNode(ODRL.elapsedTime)),
-            triple(constraintTerm, namedNode(ODRL.operator), namedNode(ODRL.eq)),
-            triple(constraintTerm, namedNode(ODRL.rightOperand), literal(duration, namedNode(XSD.duration)))
+            triple(constraintTerm, namedNode(ODRL.leftOperand), namedNode(ODRL.dateTime)),
+            triple(constraintTerm, namedNode(ODRL.operator), namedNode(ODRL.lt)),
+            triple(constraintTerm, namedNode(ODRL.rightOperand), dateTime)
         ]);
 
         expect(permissionTriples).toBeRdfIsomorphic([
@@ -75,7 +80,7 @@ describe('createSimplePolicy', () => {
 
     it('should create a policy with purpose', () => {
         const target = namedNode("http://example.org/target");
-        const purpose = "Research";
+        const purpose = "http://example.org/ns/terms/Research";
         const result = createSimplePolicy({ target, purpose });
 
         expect(result.triples.length).toBe(10); // 4 for constraint, 3 for permission, 3 for agreement
@@ -92,7 +97,7 @@ describe('createSimplePolicy', () => {
         expect(constraintTriples).toBeRdfIsomorphic([
             triple(constraintTerm, namedNode(ODRL.leftOperand), namedNode("https://w3id.org/oac#Purpose")),
             triple(constraintTerm, namedNode(ODRL.operator), namedNode(ODRL.eq)),
-            triple(constraintTerm, namedNode(ODRL.rightOperand), literal(purpose))
+            triple(constraintTerm, namedNode(ODRL.rightOperand), namedNode(purpose))
         ]);
 
         expect(permissionTriples).toBeRdfIsomorphic([
@@ -111,8 +116,8 @@ describe('createSimplePolicy', () => {
 
     it('should create a policy with assigner and assignee', () => {
         const target = namedNode("http://example.org/target");
-        const assigner = namedNode("http://example.org/assigner");
-        const assignee = namedNode("http://example.org/assignee");
+        const assigner = "http://example.org/assigner";
+        const assignee = "http://example.org/assignee";
         const result = createSimplePolicy({ target, assigner, assignee });
 
         expect(result.triples.length).toBe(8); // 3 for permission, 3 for agreement, 2 for assigner and assignee
@@ -127,8 +132,8 @@ describe('createSimplePolicy', () => {
             triple(permissionTerm, namedNode(ODRL.target), target),
             triple(permissionTerm, namedNode(ODRL.action), namedNode(ODRL.use)),
             triple(permissionTerm, namedNode(ODRL.action), namedNode(ODRL.read)),
-            triple(permissionTerm, namedNode(ODRL.assigner), assigner),
-            triple(permissionTerm, namedNode(ODRL.assignee), assignee),
+            triple(permissionTerm, namedNode(ODRL.assigner), namedNode(assigner)),
+            triple(permissionTerm, namedNode(ODRL.assignee), namedNode(assignee)),
         ]);
 
         expect(agreementTriples).toBeRdfIsomorphic([

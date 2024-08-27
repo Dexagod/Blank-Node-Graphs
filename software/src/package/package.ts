@@ -11,7 +11,7 @@ const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactor
  * @param store quad store
  * @returns 
  */
-export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_Graph[], metadataGraph?: Quad_Graph): Store {
+export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_Graph[], metadataGraph?: Quad_Graph) {
 
     const datasetSubject = blankNode()
     const containingGraphTerm = metadataGraph ?  namedNode(metadataGraph.value) : defaultGraph()
@@ -26,7 +26,7 @@ export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_G
     }
     store.addQuads(datasetQuads)
 
-    return store
+    return { store, graph: containingGraphTerm, id: datasetSubject }
 }
 
 export function renameGraph( store: Store, source: Quad_Graph, target?: Quad_Graph, retainOriginal?: boolean  ) {

@@ -12,7 +12,7 @@ export function addPolicyGraphToStore( store: Store, policy: Triple[], graph?: Q
     graph = graph || blankNode();
     store.addQuads(policy.map(t => quad(t.subject, t.predicate, t.object, graph)))   
 
-    return store;
+    return { graph, store };
 }
 
 

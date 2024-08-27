@@ -6,9 +6,9 @@ import { RDF, XSD } from "@inrupt/vocab-common-rdf";
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
 export interface SignatureInfo {
-    issuer: Quad_Object,
+    issuer: string,
     proofValue: string,
-    verificationMethod: Quad_Object,
+    verificationMethod: string,
     cryptoSuite: string,
     target: Quad_Object,
     hashMethod: string,
@@ -22,7 +22,7 @@ export function addSignatureGraphToStore( store: Store, signature: Triple[], gra
     graph = graph || blankNode();
     store.addQuads(signature.map(t => quad(t.subject, t.predicate, t.object, graph)))   
 
-    return store
+    return { store, graph }
 }
 
 
@@ -35,9 +35,9 @@ export function createSignatureTriples( signature: SignatureInfo ) {
     const signatureTriples = [
         quad(signatureSubject, namedNode(RDF.type), namedNode(SignOntology.DataIntegrityProof)),
         quad(signatureSubject, namedNode(SignOntology.created), literal(new Date().toISOString(), XSD.dateTime)),
-        quad(signatureSubject, namedNode(SignOntology.issuer), issuer),
+        quad(signatureSubject, namedNode(SignOntology.issuer), namedNode(issuer)),
         quad(signatureSubject, namedNode(SignOntology.cryptosuite), literal(cryptoSuite)),
-        quad(signatureSubject, namedNode(SignOntology.verificationMethod), verificationMethod),
+        quad(signatureSubject, namedNode(SignOntology.verificationMethod), namedNode(verificationMethod)),
         quad(signatureSubject, namedNode(SignOntology.proofPurpose), literal("assertionMethod")),
         quad(signatureSubject, namedNode(SignOntology.proofValue), literal(proofValue)),
         quad(signatureSubject, namedNode(SignOntology.target), target as Quad_Object),
@@ -64,8 +64,8 @@ export function createSignatureTriples( signature: SignatureInfo ) {
  */
 export async function createRDFGraphSignature( store: Store, target: Quad_Graph, signatureOptions: { 
     privateKey: CryptoKey, 
-    issuer: Quad_Object, 
-    verificationMethod: Quad_Object,
+    issuer: string, 
+    verificationMethod: string,
     metadataGraph?: Quad_Graph,
 }) {
     // Throw error on signing the default graph
@@ -81,8 +81,8 @@ export async function createRDFGraphSignature( store: Store, target: Quad_Graph,
 
 export async function createRDFDatasetSignature( store: Store, target: Quad_Object, signatureOptions: { 
     privateKey: CryptoKey, 
-    issuer: Quad_Object, 
-    verificationMethod: Quad_Object,
+    issuer: string, 
+    verificationMethod: string,
 }) {
     // Extract contained graphs in dataset
     const containedGraphraphsInDataset = store.getQuads(target, RDFContainsURI, null, null).map(q => q.object)
@@ -98,8 +98,8 @@ export async function createRDFDatasetSignature( store: Store, target: Quad_Obje
 
 async function createSignatureForQuadArray( quads: Quad[], target: Quad_Object, signatureOptions: { 
     privateKey: CryptoKey, 
-    issuer: Quad_Object, 
-    verificationMethod: Quad_Object,
+    issuer: string, 
+    verificationMethod: string,
 }): Promise<SignatureInfo> {
     const { privateKey, issuer, verificationMethod } = signatureOptions;
 

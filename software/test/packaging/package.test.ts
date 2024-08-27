@@ -17,7 +17,7 @@ describe('createDatasetFromGraphsInStore', () => {
 
     it('should add dataset triples to the store', () => {
         const graphTerms = [namedNode("http://example.org/graph1"), namedNode("http://example.org/graph2")];
-        const updatedStore = createDatasetFromGraphsInStore(store, graphTerms);
+        const updatedStore = createDatasetFromGraphsInStore(store, graphTerms).store;
 
         expect(updatedStore.size).toBe(3); // 1 RDF.type quad + 2 RDFContains quads
 
@@ -42,7 +42,7 @@ describe('createDatasetFromGraphsInStore', () => {
     it('should use metadataGraph if provided', () => {
         const graphTerms = [namedNode("http://example.org/graph1")];
         const metadataGraph = namedNode("http://example.org/metadataGraph");
-        const updatedStore = createDatasetFromGraphsInStore(store, graphTerms, metadataGraph);
+        const updatedStore = createDatasetFromGraphsInStore(store, graphTerms, metadataGraph).store;
 
         expect(updatedStore.size).toBe(2);
 
