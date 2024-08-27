@@ -3,7 +3,7 @@ import { ODRL, RDF, XSD } from "@inrupt/vocab-common-rdf";
 import { Quad_Subject } from "rdf-js";
 import "jest-rdf";
 import { parseTrigToStore, serializeTrigFromStore } from "../src/util/trigUtils";
-import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createSignatureTriples, createSimplePolicy, renameGraph } from "../src";
+import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph } from "../src";
 import { exportKey, exportPrivateKey, generateKeyPair, importKey, importPrivateKey } from "@jeswr/rdfjs-sign/dist";
 import { webcrypto } from "crypto";
 
@@ -17,7 +17,17 @@ describe('createSimplePolicy', () => {
     });
 
     it('should create a policy with no duration or purpose', async () => {
+
+        const publicKeyResource = "https://pod.rubendedecker.be/keys/test_public"
+        const privateKeyResource = "https://pod.rubendedecker.be/keys/test_private"
+        // Testing key retrieval for myself
+        const publicKeyText = await (await fetch(publicKeyResource)).text()
+        const privateKeyJSON = await (await fetch(privateKeyResource)).json()
         
+        const publicKey = await importKey((publicKeyText))
+        const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
+        
+
         let rubenProfileDoc = `
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
@@ -56,6 +66,11 @@ describe('createSimplePolicy', () => {
     josProfileGraph = renamed2.graph as BlankNode
     store.addQuads(josProfileStore.getQuads(null, null, null, null))
 
+    // Create signature of profile image of Ruben
+
+    const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+    const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
+    const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
     
     const rubenProvenanceTriples = createProvenanceTriples({target: rubenProfileGraph, origin: "https://pod.rubendedecker.be/profile/card", issuer: "https://pod.rubendedecker.be/profile/card#me"})
     const rubenProvenanceGraph = addProvenanceGraphToStore(store, rubenProvenanceTriples.triples).graph
@@ -69,16 +84,10 @@ describe('createSimplePolicy', () => {
     const josPolicyTriples = createSimplePolicy({ target: josProfileGraph, assigner: "https://josd.github.io/card.ttl#me", duration: "P1M", purpose: "https://w3id.org/dpv#ServiceProvision"})
     const josPolicyGraph = addPolicyGraphToStore(store, josPolicyTriples.triples).graph
 
-    const datasetURI = createDatasetFromGraphsInStore(store, [rubenProfileGraph, rubenProvenanceGraph, rubenPolicyGraph, josProfileGraph, josProvenanceGraph, josPolicyGraph]).id
+    const datasetURI = createDatasetFromGraphsInStore(store, [rubenProfileGraph, rubenProvenanceGraph, rubenPolicyGraph, rubenImageSignatureGraph, josProfileGraph, josProvenanceGraph, josPolicyGraph]).id
     
-    // Testing key retrieval for myself
-    const publicKeyText = await (await fetch("https://pod.rubendedecker.be/keys/test_public")).text()
-    const privateKeyJSON = await (await fetch("https://pod.rubendedecker.be/keys/test_private")).json()
-    
-    const publicKey = await importKey((publicKeyText))
-    const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
 
-    const signatureInfo = await createRDFDatasetSignature(store, datasetURI, { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: "https://pod.rubendedecker.be/keys/publicKey"})
+    const signatureInfo = await createRDFDatasetSignature(store, datasetURI, { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
     const signatureTriples = createSignatureTriples(signatureInfo).triples
     const signatureGraph = addSignatureGraphToStore(store, signatureTriples).graph
     // const signature

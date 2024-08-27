@@ -1,7 +1,10 @@
-import { signQuads } from "@jeswr/rdfjs-sign/dist"
+import { keyParams, signParams, signQuads } from "@jeswr/rdfjs-sign/dist"
 import { PackOntology, SignOntology } from "../util/util"
 import { Store, Quad_Graph, Quad_Object, Quad, DataFactory, Triple } from "n3"
 import { RDF, XSD } from "@inrupt/vocab-common-rdf";
+import { sign, webcrypto } from "crypto";
+
+import { getResourceAsQuadArray, getResourceAsStore } from "@dexagod/rdf-retrieval"
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
@@ -96,6 +99,25 @@ export async function createRDFDatasetSignature( store: Store, target: Quad_Obje
     return signatureInfo
 }
 
+export async function createRemoteRDFGraphSignature( url: string, target: Quad_Graph, signatureOptions: { 
+    privateKey: CryptoKey, 
+    issuer: string, 
+    verificationMethod: string,
+    metadataGraph?: Quad_Graph,
+}) {
+    const resourceStore = await getResourceAsStore(url)
+    return createRDFGraphSignature(resourceStore, target, signatureOptions)
+}
+
+export async function createRemoteRDFDatasetSignature( url: string, target: Quad_Object, signatureOptions: { 
+    privateKey: CryptoKey, 
+    issuer: string, 
+    verificationMethod: string,
+}) {
+    const resourceStore = await getResourceAsStore(url)
+    return createRDFDatasetSignature(resourceStore, target, signatureOptions)
+}
+
 async function createSignatureForQuadArray( quads: Quad[], target: Quad_Object, signatureOptions: { 
     privateKey: CryptoKey, 
     issuer: string, 
@@ -110,9 +132,52 @@ async function createSignatureForQuadArray( quads: Quad[], target: Quad_Object, 
         issuer,
         proofValue: signature,
         verificationMethod: verificationMethod,
-        cryptoSuite: "ECDSA:P-384", // todo: wtf do we do here?
+        cryptoSuite: keyParams.name, // todo: wtf do we do here?
         target,
         hashMethod: "SHA-512",
-        canonicalizationMethod: "C14N",
+        canonicalizationMethod: "c14n",
     }
+}
+
+export async function createRemoteResourceSignature(url: string, signatureOptions: { 
+        privateKey: CryptoKey
+        issuer: string, 
+        verificationMethod: string,
+    }) : Promise<SignatureInfo> {
+
+    const {privateKey, issuer, verificationMethod} = signatureOptions;
+
+    // create buffer from resource contents
+    let content = await fetch(url)
+    let contentBuffer = Buffer.from(await content.arrayBuffer())
+    // hash content buffer using SHA-512
+    const hash = await webcrypto.subtle.digest(signParams.hash, contentBuffer)    
+    const signature = (await webcrypto.subtle.sign(signParams, privateKey, hash))
+    const signatureString = Buffer.from(signature).toString('base64')
+    
+    return {
+        issuer,
+        proofValue: signatureString,
+        verificationMethod: verificationMethod,
+        cryptoSuite: keyParams.name,
+        target: namedNode(url),
+        hashMethod: signParams.hash,
+    }
+    
+
+    // console.log()
+    // console.log(signature)
+    // console.log()
+    // console.log(signatureString)
+    
+    // const verification = await webcrypto.subtle.verify(
+    //     signParams,
+    //     keyPair.publicKey,    
+    //     Buffer.from(signatureString, 'base64'),
+    //     hash,
+    // );
+      
+    // console.log()
+    // console.log(verification)
+
 }

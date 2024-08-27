@@ -1,8 +1,9 @@
 import { RDF } from "@inrupt/vocab-common-rdf";
-import { DataFactory, Quad, Quad_Graph, Store, Term, Triple } from "n3";
+import { BlankNode, DataFactory, Quad, Quad_Graph, Store, Term, Triple } from "n3";
 import { v4 as uuidv4 } from 'uuid';
 import { renameGraph } from "../package/package";
 import moment from "moment";
+import { NamedNode } from "rdf-js";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
@@ -50,4 +51,17 @@ export function checkContainmentType(store: Store, term: Term): ContainmentType 
 
 export function generateUrnUuid() {
     return DataFactory.namedNode(`urn:policy:${uuidv4()}`)
+}
+
+export function getDatasetGraphQuads(store: Store, dataset: BlankNode | NamedNode) {
+    if(!store.getQuads(dataset, RDF.type, PackOntology.Dataset, null).length) {
+        throw new Error('Incorrect dataset reference passed for given store.')
+    }
+
+    const graphIds = store.getQuads(dataset, PackOntology.contains, null, null).map(quad => quad.object)
+    let quads: Quad[] = []
+    for (let graphId of graphIds) {
+        quads = quads.concat(store.getQuads(null, null, null, graphId))
+    }
+    return quads
 }
