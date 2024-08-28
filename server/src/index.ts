@@ -89,7 +89,7 @@ async function processRDFResource(url: string, singPredicates: string[]) {
 
     // Fix key stuff here because of async requirement
     const publicKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
-    const privateKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
+    const privateKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
 
     // Testing key retrieval for myself
     // const publicKeyText = await (await fetch(publicKeyResource)).text()
