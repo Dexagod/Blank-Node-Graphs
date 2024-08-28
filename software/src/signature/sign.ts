@@ -99,14 +99,14 @@ export async function createRDFDatasetSignature( store: Store, target: Quad_Obje
     return signatureInfo
 }
 
-export async function createRemoteRDFGraphSignature( url: string, target: Quad_Graph, signatureOptions: { 
+export async function createRemoteRDFSignature( url: string, signatureOptions: { 
     privateKey: CryptoKey, 
     issuer: string, 
     verificationMethod: string,
     metadataGraph?: Quad_Graph,
 }) {
-    const resourceStore = await getResourceAsStore(url)
-    return createRDFGraphSignature(resourceStore, target, signatureOptions)
+    const resourceQuads = await getResourceAsQuadArray(url) as Quad[]
+    return createSignatureForQuadArray(resourceQuads, namedNode(url), signatureOptions );
 }
 
 export async function createRemoteRDFDatasetSignature( url: string, target: Quad_Object, signatureOptions: { 

@@ -12,5 +12,7 @@ export * from "./signature/sign"
 export * from "./signature/verify"
 
 export * from "./util/util"
+export * from "./util/signUtils"
+export * from "./util/trigUtils"
 
 

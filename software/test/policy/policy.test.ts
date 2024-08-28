@@ -164,7 +164,6 @@ describe('createSimplePolicy', () => {
         const permissionTriples = result.triples.filter(triple => triple.subject.equals(permissionTerm));
         const agreementTriples = result.triples.filter(triple => triple.subject.equals(agreementTerm));
 
-
         for (let constraintTerm of permissionConstraintTerms) {
             console.log(constraintTerm)
             // assert it is part of a list
