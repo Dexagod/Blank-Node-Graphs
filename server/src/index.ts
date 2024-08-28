@@ -88,13 +88,14 @@ async function processRDFResource(url: string, singPredicates: string[]) {
 
 
     // Fix key stuff here because of async requirement
-    const publicKeyResource = "https://pod.rubendedecker.be/keys/test_public"
-    const privateKeyResource = "https://pod.rubendedecker.be/keys/test_private"
+    const publicKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
+    const privateKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
+
     // Testing key retrieval for myself
-    const publicKeyText = await (await fetch(publicKeyResource)).text()
+    // const publicKeyText = await (await fetch(publicKeyResource)).text()
     const privateKeyJSON = await (await fetch(privateKeyResource)).json()
 
-    const issuer = "https://pod.rubendedecker.be/profile/card#me"
+    const issuer = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me"
 
     // const publicKey = await importKey(publicKeyText)
     const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
