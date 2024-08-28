@@ -96,7 +96,7 @@ async function processRDFResource(url: string, singPredicates: string[]) {
 
     const issuer = "https://pod.rubendedecker.be/profile/card#me"
 
-    const publicKey = await importKey((publicKeyText))
+    // const publicKey = await importKey(publicKeyText)
     const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
 
     const signatureOptions = {
