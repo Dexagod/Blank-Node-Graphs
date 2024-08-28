@@ -1,0 +1,22 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix solid: <http://www.w3.org/ns/solid/terms#>.
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#>.
+@prefix frapo: <http://purl.org/cerif/frapo/>.
+@prefix knows: <https://data.knows.idlab.ugent.be/person/office/#>.
+@prefix schema: <http://schema.org/>.
+@prefix space: <http://www.w3.org/ns/pim/space#>.
+@prefix ldp: <http://www.w3.org/ns/ldp#>.
+@prefix cv: <http://rdfs.org/resume-rdf/cv.rdfs#>.
+@prefix cvb: <http://rdfs.org/resume-rdf/base.rdfs#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix root: <https://pod.rubendedecker.be/>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix cert: <http://www.w3.org/ns/auth/cert#>.
+
+<https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile> a foaf:PersonalProfileDocument;
+    foaf:maker <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me>;
+    foaf:primaryTopic <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me>.
+<https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me> a foaf:Person;
+    foaf:name "Bob The Builder"@en;
+    cert:key <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public>.
