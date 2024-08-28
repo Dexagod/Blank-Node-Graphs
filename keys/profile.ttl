@@ -14,9 +14,9 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix cert: <http://www.w3.org/ns/auth/cert#>.
 
-<https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile> a foaf:PersonalProfileDocument;
-    foaf:maker <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me>;
-    foaf:primaryTopic <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me>.
-<https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me> a foaf:Person;
+<https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl> a foaf:PersonalProfileDocument;
+    foaf:maker <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me>;
+    foaf:primaryTopic <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me>.
+<https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me> a foaf:Person;
     foaf:name "Bob The Builder"@en;
     cert:key <https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public>.
