@@ -78,10 +78,10 @@ describe('createSimplePolicy', () => {
         const josProvenanceTriples = createProvenanceTriples({target: josProfileGraph, origin: "https://josd.github.io/card.ttl", issuer: "https://josd.github.io/card.ttl#me"})
         const josProvenanceGraph = addProvenanceGraphToStore(store, josProvenanceTriples.triples).graph
 
-        const rubenPolicyTriples = createSimplePolicy({ target: rubenProfileGraph, assigner: "https://pod.rubendedecker.be/profile/card#me", duration: "P1Y", purpose: "https://w3id.org/dpv#ServiceProvision"})
+        const rubenPolicyTriples = createSimplePolicy({ target: rubenProfileGraph, assigner: "https://pod.rubendedecker.be/profile/card#me", duration: "P1Y", purpose: ["https://w3id.org/dpv#ServiceProvision"]})
         const rubenPolicyGraph = addPolicyGraphToStore(store, rubenPolicyTriples.triples).graph
 
-        const josPolicyTriples = createSimplePolicy({ target: josProfileGraph, assigner: "https://josd.github.io/card.ttl#me", duration: "P1M", purpose: "https://w3id.org/dpv#ServiceProvision"})
+        const josPolicyTriples = createSimplePolicy({ target: josProfileGraph, assigner: "https://josd.github.io/card.ttl#me", duration: "P1M", purpose: ["https://w3id.org/dpv#ServiceProvision"]})
         const josPolicyGraph = addPolicyGraphToStore(store, josPolicyTriples.triples).graph
 
         const datasetURI = createDatasetFromGraphsInStore(store, [rubenProfileGraph, rubenProvenanceGraph, rubenPolicyGraph, rubenImageSignatureGraph, josProfileGraph, josProvenanceGraph, josPolicyGraph]).id
@@ -92,11 +92,11 @@ describe('createSimplePolicy', () => {
         const signatureGraph = addSignatureGraphToStore(store, signatureTriples).graph
         
 
-        console.log(await serializeTrigFromStore(store))
+        // console.log(await serializeTrigFromStore(store))
 
         const verifications = await verifyAllSignatures(store);
 
-        console.log(verifications)
+        // console.log(verifications)
     
     
     })

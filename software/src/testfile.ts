@@ -2,8 +2,11 @@ import { generateKeyPair, exportPrivateKey, importPrivateKey, exportKey, importK
 import { sign, webcrypto } from "crypto";
 import moment, { Moment } from "moment"
 import { addSignatureGraphToStore, createRemoteResourceSignature, createSignatureTriples } from "./signature/sign";
-import { Store } from "n3";
+import { DataFactory, Store } from "n3";
 import { verifyAllSignatures, verifySignature } from "./signature/verify";
+import { createRDFList } from "./util/util";
+import { serializeTrigFromStore } from "./util/trigUtils";
+import { createSimplePolicy } from "./example/policy";
 
 
 
@@ -66,4 +69,19 @@ async function signImage(imageURL: string) {
 
 }
 
-signImage("https://pod.rubendedecker.be/profile/image.png")
+
+async function test () {
+
+
+    const p = await createSimplePolicy({ target: DataFactory.namedNode('http://example.org'), duration: "P1M", purpose: ['testA', 'testB', 'testC'] } )
+    const s2 = new Store()
+    s2.addQuads(p.triples)
+    console.log()
+    console.log(await serializeTrigFromStore(s2))
+
+}
+
+test()
+
+// signImage("https://pod.rubendedecker.be/profile/image.png")
+

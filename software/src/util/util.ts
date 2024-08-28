@@ -3,7 +3,7 @@ import { BlankNode, DataFactory, Quad, Quad_Graph, Store, Term, Triple } from "n
 import { v4 as uuidv4 } from 'uuid';
 import { renameGraph } from "../package/package";
 import moment from "moment";
-import { NamedNode } from "rdf-js";
+import { NamedNode, Quad_Object } from "rdf-js";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
@@ -64,4 +64,29 @@ export function getDatasetGraphQuads(store: Store, dataset: BlankNode | NamedNod
         quads = quads.concat(store.getQuads(null, null, null, graphId))
     }
     return quads
+}
+
+export function createRDFList(terms: Quad_Object[]): { subject: BlankNode | undefined, quads: Quad[]} {
+    const quads: Quad[] = [];
+
+    let list;
+    let first;
+    let rest: Quad_Object = namedNode(RDF.nil);
+
+    for (let i = terms.length-1; i >= 0; i--) {
+        list = blankNode();
+        first = terms[i]
+        // push rest
+        quads.push(quad(list, namedNode(RDF.rest), rest))
+        // push first
+        quads.push(quad(list, namedNode(RDF.first), first as Quad_Object))
+        rest = list;
+    }
+        
+
+    return { subject: list, quads: quads, };
+
+
+
+
 }
