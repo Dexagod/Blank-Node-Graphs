@@ -3,7 +3,7 @@ import { ODRL, RDF, XSD } from "@inrupt/vocab-common-rdf";
 import { Quad_Subject } from "rdf-js";
 import "jest-rdf";
 import { parseTrigToStore, serializeTrigFromStore } from "../src/util/trigUtils";
-import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph } from "../src";
+import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, verifyAllSignatures } from "../src";
 import { exportKey, exportPrivateKey, generateKeyPair, importKey, importPrivateKey } from "@jeswr/rdfjs-sign/dist";
 import { webcrypto } from "crypto";
 
@@ -50,50 +50,53 @@ describe('createSimplePolicy', () => {
     foaf:img <https://josd.github.io/images/jdroo.jpg>;
     foaf:homepage <https://josd.github.io/>.`
 
-    // Load Ruben's document, change the graph 
-    let rubenProfileStore = parseTrigToStore(rubenProfileDoc)
-    let rubenProfileGraph;
-    const renamed = renameGraph( rubenProfileStore, DataFactory.defaultGraph() )
-    rubenProfileStore = renamed.store
-    rubenProfileGraph = renamed.graph as BlankNode
-    store.addQuads(rubenProfileStore.getQuads(null, null, null, null))
+        // Load Ruben's document, change the graph 
+        let rubenProfileStore = parseTrigToStore(rubenProfileDoc)
+        let rubenProfileGraph;
+        const renamed = renameGraph( rubenProfileStore, DataFactory.defaultGraph() )
+        rubenProfileStore = renamed.store
+        rubenProfileGraph = renamed.graph as BlankNode
+        store.addQuads(rubenProfileStore.getQuads(null, null, null, null))
 
 
-    let josProfileStore = parseTrigToStore(josProfileDoc)
-    let josProfileGraph;
-    const renamed2 = renameGraph( josProfileStore, DataFactory.defaultGraph() )
-    josProfileStore = renamed2.store
-    josProfileGraph = renamed2.graph as BlankNode
-    store.addQuads(josProfileStore.getQuads(null, null, null, null))
+        let josProfileStore = parseTrigToStore(josProfileDoc)
+        let josProfileGraph;
+        const renamed2 = renameGraph( josProfileStore, DataFactory.defaultGraph() )
+        josProfileStore = renamed2.store
+        josProfileGraph = renamed2.graph as BlankNode
+        store.addQuads(josProfileStore.getQuads(null, null, null, null))
 
-    // Create signature of profile image of Ruben
+        // Create signature of profile image of Ruben
 
-    const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
-    const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
-    const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
-    
-    const rubenProvenanceTriples = createProvenanceTriples({target: rubenProfileGraph, origin: "https://pod.rubendedecker.be/profile/card", issuer: "https://pod.rubendedecker.be/profile/card#me"})
-    const rubenProvenanceGraph = addProvenanceGraphToStore(store, rubenProvenanceTriples.triples).graph
-    
-    const josProvenanceTriples = createProvenanceTriples({target: josProfileGraph, origin: "https://josd.github.io/card.ttl", issuer: "https://josd.github.io/card.ttl#me"})
-    const josProvenanceGraph = addProvenanceGraphToStore(store, josProvenanceTriples.triples).graph
+        const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+        const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
+        const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
+        
+        const rubenProvenanceTriples = createProvenanceTriples({target: rubenProfileGraph, origin: "https://pod.rubendedecker.be/profile/card", issuer: "https://pod.rubendedecker.be/profile/card#me"})
+        const rubenProvenanceGraph = addProvenanceGraphToStore(store, rubenProvenanceTriples.triples).graph
+        
+        const josProvenanceTriples = createProvenanceTriples({target: josProfileGraph, origin: "https://josd.github.io/card.ttl", issuer: "https://josd.github.io/card.ttl#me"})
+        const josProvenanceGraph = addProvenanceGraphToStore(store, josProvenanceTriples.triples).graph
 
-    const rubenPolicyTriples = createSimplePolicy({ target: rubenProfileGraph, assigner: "https://pod.rubendedecker.be/profile/card#me", duration: "P1Y", purpose: "https://w3id.org/dpv#ServiceProvision"})
-    const rubenPolicyGraph = addPolicyGraphToStore(store, rubenPolicyTriples.triples).graph
+        const rubenPolicyTriples = createSimplePolicy({ target: rubenProfileGraph, assigner: "https://pod.rubendedecker.be/profile/card#me", duration: "P1Y", purpose: "https://w3id.org/dpv#ServiceProvision"})
+        const rubenPolicyGraph = addPolicyGraphToStore(store, rubenPolicyTriples.triples).graph
 
-    const josPolicyTriples = createSimplePolicy({ target: josProfileGraph, assigner: "https://josd.github.io/card.ttl#me", duration: "P1M", purpose: "https://w3id.org/dpv#ServiceProvision"})
-    const josPolicyGraph = addPolicyGraphToStore(store, josPolicyTriples.triples).graph
+        const josPolicyTriples = createSimplePolicy({ target: josProfileGraph, assigner: "https://josd.github.io/card.ttl#me", duration: "P1M", purpose: "https://w3id.org/dpv#ServiceProvision"})
+        const josPolicyGraph = addPolicyGraphToStore(store, josPolicyTriples.triples).graph
 
-    const datasetURI = createDatasetFromGraphsInStore(store, [rubenProfileGraph, rubenProvenanceGraph, rubenPolicyGraph, rubenImageSignatureGraph, josProfileGraph, josProvenanceGraph, josPolicyGraph]).id
-    
+        const datasetURI = createDatasetFromGraphsInStore(store, [rubenProfileGraph, rubenProvenanceGraph, rubenPolicyGraph, rubenImageSignatureGraph, josProfileGraph, josProvenanceGraph, josPolicyGraph]).id
+        
 
-    const signatureInfo = await createRDFDatasetSignature(store, datasetURI, { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
-    const signatureTriples = createSignatureTriples(signatureInfo).triples
-    const signatureGraph = addSignatureGraphToStore(store, signatureTriples).graph
-    // const signature
+        const signatureInfo = await createRDFDatasetSignature(store, datasetURI, { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+        const signatureTriples = createSignatureTriples(signatureInfo).triples
+        const signatureGraph = addSignatureGraphToStore(store, signatureTriples).graph
+        
 
-    console.log(await serializeTrigFromStore(store))
+        console.log(await serializeTrigFromStore(store))
 
+        const verifications = await verifyAllSignatures(store);
+
+        console.log(verifications)
     
     
     })

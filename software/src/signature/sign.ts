@@ -163,21 +163,4 @@ export async function createRemoteResourceSignature(url: string, signatureOption
         target: namedNode(url),
         hashMethod: signParams.hash,
     }
-    
-
-    // console.log()
-    // console.log(signature)
-    // console.log()
-    // console.log(signatureString)
-    
-    // const verification = await webcrypto.subtle.verify(
-    //     signParams,
-    //     keyPair.publicKey,    
-    //     Buffer.from(signatureString, 'base64'),
-    //     hash,
-    // );
-      
-    // console.log()
-    // console.log(verification)
-
 }

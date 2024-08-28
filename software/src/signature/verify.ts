@@ -2,10 +2,48 @@ import { getResourceAsQuadArray, getResourceAsStore } from "@dexagod/rdf-retriev
 import { importKey, signParams, verifyQuads } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto";
 import { SignatureInfo } from "./sign";
-import { Quad, Store } from "n3";
-import { checkContainmentType, ContainmentType, getDatasetGraphQuads } from "../util/util";
+import { DataFactory, Quad, Store } from "n3";
+import { checkContainmentType, ContainmentType, getDatasetGraphQuads, SignOntology } from "../util/util";
+import { NamedNode, Term } from "rdf-js";
+import { RDF } from "@inrupt/vocab-common-rdf";
 
-export async function verifySignature(store: Store, info: SignatureInfo) {
+const { namedNode } = DataFactory
+
+export type VerificationResult = {
+    result: boolean,
+    target: Term,
+    errorMessage?: string,
+    verifiedContents?: NamedNode | Quad[]
+}
+
+export async function verifyAllSignatures(store: Store): Promise<VerificationResult[]> {
+
+    const signatureSubjects = store.getQuads(null, namedNode(RDF.type), SignOntology.DataIntegrityProof, null).map(q => q.subject)
+    const signatureInfoList: SignatureInfo[] = []
+    for (let subject of signatureSubjects) {
+        const contentManipulationSubject = store.getQuads(subject, namedNode(SignOntology.contentManipulation), null, null)[0].object
+        signatureInfoList.push({
+            issuer: store.getQuads(subject, namedNode(SignOntology.issuer), null, null)[0].object.value,
+            proofValue: store.getQuads(subject, namedNode(SignOntology.proofValue), null, null)[0].object.value,
+            verificationMethod: store.getQuads(subject, namedNode(SignOntology.verificationMethod), null, null)[0].object.value,
+            cryptoSuite: store.getQuads(subject, namedNode(SignOntology.cryptosuite), null, null)[0].object.value,
+            target: store.getQuads(subject, namedNode(SignOntology.target), null, null)[0].object,
+            hashMethod: store.getQuads(contentManipulationSubject, namedNode(SignOntology.hashMethod), null, null)[0].object.value,
+            canonicalizationMethod: store.getQuads(contentManipulationSubject, namedNode(SignOntology.canonicalizationMethod), null, null)[0]?.object.value,
+        })
+    }
+
+    let verificationResults: Promise<VerificationResult>[] = []
+
+    for (let signatureInfo of signatureInfoList) {
+        verificationResults.push(verifySignature(store, signatureInfo))
+    }    
+
+    let awaitedResults = Promise.all(verificationResults)
+    return awaitedResults
+}
+
+export async function verifySignature(store: Store, info: SignatureInfo): Promise<VerificationResult> {
     const { issuer, proofValue, verificationMethod, cryptoSuite, target, hashMethod, canonicalizationMethod } = info
     
     if (target.termType === 'Variable' || target.termType === "Literal") {
@@ -25,11 +63,12 @@ export async function verifySignature(store: Store, info: SignatureInfo) {
         }
         return await verifyRDFContentSignature(quads, info);
     } else {
+        // Named node targets means that our signature target graph or dataset are scoped to the remote scope defined by the URI domain.
         let isRDF = true
         let resourceStore: Store | undefined;
         try {
             resourceStore = await getResourceAsStore(target.value);
-        } catch (e) {
+        } catch (eVerifyBufferContentSignature) {
             isRDF = false
         }
         
@@ -50,10 +89,7 @@ export async function verifySignature(store: Store, info: SignatureInfo) {
             const buffer = Buffer.from(await resource.arrayBuffer())
             return await verifyBufferContentSignature(buffer, info)
         }
-
-        // Named node targets means that our signature target graph or dataset are scoped to the remote scope defined by the URI domain.
     }
-
 }
 
 /**
@@ -62,25 +98,52 @@ export async function verifySignature(store: Store, info: SignatureInfo) {
  * @param info 
  * @returns 
  */
-async function verifyRDFContentSignature(quads: Quad[], info: SignatureInfo) {
+async function verifyRDFContentSignature(quads: Quad[], info: SignatureInfo): Promise<VerificationResult> {
     const { issuer, proofValue, verificationMethod, cryptoSuite, target, hashMethod, canonicalizationMethod } = info
     if (canonicalizationMethod !== "c14n") {
         throw new Error('Currently this package only supports canonicalization of RDF with the c14n algorithm.')
     }
-    const publicKey = await getPublicKeyFromVerificationMethod(verificationMethod)
-    return await verifyQuads(quads, proofValue, publicKey)
+    
+    try {
+        const publicKey = await getPublicKeyFromVerificationMethod(verificationMethod)
+        const result = await verifyQuads(quads, proofValue, publicKey)
+        return ({
+            result,
+            target: info.target,
+            verifiedContents: quads
+        })
+    } catch (e: unknown) {
+        return {
+            result: false,
+            target: info.target,
+            errorMessage: (e as Error).message
+        }
+    }
 }
 
-async function verifyBufferContentSignature(buffer: Buffer, info: SignatureInfo) {
+async function verifyBufferContentSignature(buffer: Buffer, info: SignatureInfo): Promise<VerificationResult> {
     const { issuer, proofValue, verificationMethod, cryptoSuite, target, hashMethod, canonicalizationMethod } = info
-    const hash = await webcrypto.subtle.digest(hashMethod, buffer);
-    const publicKey = await getPublicKeyFromVerificationMethod(verificationMethod)
-    const verification = await webcrypto.subtle.verify(
-        signParams,
-        publicKey,    
-        buffer,
-        hash,
-    );
+    try {
+        const hash = await webcrypto.subtle.digest(hashMethod, buffer);
+        const publicKey = await getPublicKeyFromVerificationMethod(verificationMethod)
+        const result = await webcrypto.subtle.verify(
+            signParams,
+            publicKey,    
+            Buffer.from(proofValue, 'base64'),
+            hash,
+        );
+        return ({
+            result,
+            target: info.target,
+            verifiedContents: target as NamedNode
+        })
+    } catch (e: unknown) {
+        return {
+            result: false,
+            target: info.target,
+            errorMessage: (e as Error).message
+        }
+    }
 }
 
 async function getPublicKeyFromVerificationMethod(verificationMethod: string) {

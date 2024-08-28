@@ -91,7 +91,7 @@ Graph _:retrievalSignature
         sign:target _:profileDataset.
 
     _:manipulation 
-        sign:canonicalizationMethod "C14N";
+        sign:canonicalizationMethod "c14n";
         sign:hashMethod "SHA-1".
 }
 
@@ -125,7 +125,7 @@ Graph _:metadataSignature
         sign:target _:metaDataset.
 
     _:manipulation 
-        sign:canonicalizationMethod "C14N";
+        sign:canonicalizationMethod "c14n";
         sign:hashMethod "SHA-1".
 }
 

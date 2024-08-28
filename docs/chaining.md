@@ -21,12 +21,12 @@ A signature of a resource or graph takes the following form:
 
 #### Signature
 * MUST dereference the named graph
-* Use C14N canonicalization algorithm over the contents of the graph
+* Use c14n canonicalization algorithm over the contents of the graph
 * Sign graph with https://github.com/jeswr/rdfjs-sign
 
 #### Verification
 * MUST dereference the named graph
-* Use C14N canonicalization algorithm over the contents of the graph
+* Use c14n canonicalization algorithm over the contents of the graph
 * Verify generated signature
 
 

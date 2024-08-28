@@ -1,6 +1,9 @@
-import { generateKeyPair } from "@jeswr/rdfjs-sign/dist";
+import { generateKeyPair, exportPrivateKey, importPrivateKey, exportKey, importKey } from "@jeswr/rdfjs-sign/dist";
 import { sign, webcrypto } from "crypto";
 import moment, { Moment } from "moment"
+import { addSignatureGraphToStore, createRemoteResourceSignature, createSignatureTriples } from "./signature/sign";
+import { Store } from "n3";
+import { verifyAllSignatures, verifySignature } from "./signature/verify";
 
 
 
@@ -15,9 +18,15 @@ async function signImage(imageURL: string) {
     const hash = await webcrypto.subtle.digest("SHA-512", imgBuffer)
     console.log(hash)
 
-    const keyPair = await generateKeyPair()
-
-
+    const publicKeyResource = "https://pod.rubendedecker.be/keys/test_public"
+    const privateKeyResource = "https://pod.rubendedecker.be/keys/test_private"
+    // Testing key retrieval for myself
+    const publicKeyText = await (await fetch(publicKeyResource)).text()
+    const privateKeyJSON = await (await fetch(privateKeyResource)).json()
+    
+    const publicKey = await importKey((publicKeyText))
+    const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
+    
     const keyParams = {
         name: 'ECDSA',
         namedCurve: 'P-384',
@@ -28,24 +37,31 @@ async function signImage(imageURL: string) {
         hash: 'SHA-512',
     };
 
-    const signature = (await webcrypto.subtle.sign(signParams, keyPair.privateKey, hash))
+    const signature = (await webcrypto.subtle.sign(signParams, privateKey, hash))
     const signatureString = Buffer.from(signature).toString('base64')
-    
-    console.log()
-    console.log(signature)
-    console.log()
-    console.log(signatureString)
-    
+
     const verification = await webcrypto.subtle.verify(
         signParams,
-        keyPair.publicKey,    
+        await publicKey,
         Buffer.from(signatureString, 'base64'),
         hash,
     );
-      
-    console.log()
-    console.log(verification)
-      
+
+    let store = new Store();
+    const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+    const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
+    const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
+
+    // create buffer from resource contents
+    let content = await fetch("https://pod.rubendedecker.be/profile/image.png")
+    let contentBuffer = Buffer.from(await content.arrayBuffer())
+    // hash content buffer using SHA-512
+    const hash2 = await webcrypto.subtle.digest(signParams.hash, contentBuffer)    
+    const signature2 = (await webcrypto.subtle.sign(signParams, privateKey, hash2))
+    const signatureString2 = Buffer.from(signature2).toString('base64')
+    
+    const results = await verifyAllSignatures(store)
+    console.log(results)
       
 
 }
