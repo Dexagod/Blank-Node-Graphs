@@ -1,9 +1,9 @@
 import express from "express"
 import http from "http"
 import request from "request"
-import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteRDFSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, serializeTrigFromStore } from "../../software/src/"
+import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteRDFSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, serializeTrigFromStore, SignatureInfo } from "../../software/src/"
 import { getResourceAsStore } from "@dexagod/rdf-retrieval";
-import { DataFactory, Quad_Object, Store } from "n3";
+import { DataFactory, Quad_Object, Store, BlankNode, NamedNode, Quad_Graph } from "n3";
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto"
 
@@ -29,19 +29,20 @@ program
 program.command('setup')
   .description('Setup the proxy')
   .option('-p, --port <number>', 'port number to host proxy')
+  .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
   .option('-s, --signature-predicates [predicates...]')
   .action((options) => {
-    let {port, signaturePredicates} = options
+    let {port, canonicalizeRemoteResources, signaturePredicates} = options
     
     port = port || 8080
     signaturePredicates = signaturePredicates || []
-    startProxy(port, signaturePredicates)
+    startProxy(port, signaturePredicates, canonicalizeRemoteResources)
   });
 
 
 program.parse(process.argv);
 
-async function startProxy(port: number, signaturePredicates: string[]) {
+async function startProxy(port: number, signaturePredicates: string[], canonicalizeRemoteResources: boolean) {
 
     const app = express();
 
@@ -54,7 +55,7 @@ async function startProxy(port: number, signaturePredicates: string[]) {
             if(!requestUrl) return;
             
             if (await isRDFResource(requestUrl)){
-                const updatedContent = await processRDFResource(requestUrl, signaturePredicates)
+                const updatedContent = await processRDFResource(requestUrl, signaturePredicates, canonicalizeRemoteResources)
                 res.setHeader('Content-Type', 'application/trig')
                 res.send(updatedContent)
             } else {
@@ -84,8 +85,7 @@ async function generateDefaultPolicy(target: Quad_Object) {
     })
 }
 
-async function processRDFResource(url: string, singPredicates: string[]) {
-
+async function processRDFResource(url: string, singPredicates: string[], canonicalizeRemoteResources: boolean) {
 
     // Fix key stuff here because of async requirement
     const publicKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
@@ -114,34 +114,23 @@ async function processRDFResource(url: string, singPredicates: string[]) {
 	const store = await getResourceAsStore(resourceUrl) as Store;
 	renameGraph(store, DataFactory.defaultGraph())
 	
-    const signatureWaitList: Promise<void>[] = []
+    const signatureWaitList: Promise<any>[] = []
     console.log(singPredicates)
 	for (let quad of store.getQuads(null, null, null, null)) {
 		if (singPredicates.includes(quad.predicate.value)) {
             const targetResource = getTargetResourceURI(quad.object.value)
-            if (await isRDFResource(targetResource)) {
-                const p = new Promise<void>(async (resolve, reject) => {
-                    const signatureInfo = await createRemoteRDFSignature(targetResource, signatureOptions)
-                    const signatureTriples = createSignatureTriples(signatureInfo)
-                    await addSignatureGraphToStore(store, signatureTriples.triples)
-                    console.log('created RDF signature for', targetResource)
-                    resolve()
-                })
-                signatureWaitList.push(p)
-                
-                
+            if (canonicalizeRemoteResources && await isRDFResource(targetResource)) {
+                const signatureGraph = tryCreateRemoteRDFResourceSignature(store, targetResource, signatureOptions)
+                signatureWaitList.push(signatureGraph)
+                // await signatureGraph
             } else {
-                const p = new Promise<void>(async (resolve, reject) => {
-                    const signatureInfo = await createRemoteResourceSignature(targetResource, signatureOptions)
-                    const signatureTriples = createSignatureTriples(signatureInfo)
-                    await addSignatureGraphToStore(store, signatureTriples.triples)
-                    console.log('created resource signature for', targetResource)
-                })
-                signatureWaitList.push(p)
-            }
-		}
-	}
-    Promise.all(signatureWaitList)
+                const signatureGraph = tryCreateRemoteResourceSignature(store, targetResource, signatureOptions)
+                signatureWaitList.push(signatureGraph)
+                // await signatureGraph
+            }   
+        }
+    }
+    await Promise.all(signatureWaitList)
 	
     // Create dataset from all contents and signatures about content references
 	let contentGraphs = store.getGraphs(null, null, null)
@@ -157,39 +146,23 @@ async function processRDFResource(url: string, singPredicates: string[]) {
         target: datasetId
     })
     const provenanceGraph = addProvenanceGraphToStore(store, provenance.triples).graph
-    // Create a signature over this content dataset
-    const signatureInfo = await createRDFDatasetSignature(store, datasetId, signatureOptions)
-    const signatureTriples = createSignatureTriples(signatureInfo)
-    const signatureGraph = await addSignatureGraphToStore(store, signatureTriples.triples).graph
 
+    // Create a signature over this content dataset
+    const signatureGraph = await tryCreateDatasetSignature(store, datasetId, signatureOptions)
+    
     // Wrap in metadata dataset
-    const metadataDatasetId = createDatasetFromGraphsInStore(store, [policyGraph, provenanceGraph, signatureGraph]).id
+    let metadataDatasetId: BlankNode;
+    if (signatureGraph) metadataDatasetId = createDatasetFromGraphsInStore(store, [policyGraph, provenanceGraph, signatureGraph]).id
+    else metadataDatasetId = createDatasetFromGraphsInStore(store, [policyGraph, provenanceGraph]).id
 
     // Sign metadata dataset
-    const metadataSignatureInfo = await createRDFDatasetSignature(store, metadataDatasetId, signatureOptions)
-    const metadataSignatureTriples = createSignatureTriples(metadataSignatureInfo)
-    const metadataSignatureGraph = await addSignatureGraphToStore(store, metadataSignatureTriples.triples).graph
+    const metadataSignatureGraph = await tryCreateDatasetSignature(store, metadataDatasetId, signatureOptions)
 	
 	// Content manipuation is complete
     const output = await serializeTrigFromStore(store)
 
     return output
 }
-
-
-
-// * standardized resource format:
-// * 
-// * _:orig_content_dataset a pack:Dataset;
-// *      pack:contains _:g1, _:g2.
-// * 
-// * _:orig_g1 { contentGrapg1 }
-// * _:orig_g2 { contentGrapg2 }
-// * 
-// * _:orig_s1 { 
-// *      _:s a sign:IntegrityProof ;
-// *          sign:target _:orig_content_dataset.
-// * }
 
 
 async function isRDFResource(url: string) {
@@ -203,4 +176,86 @@ async function isRDFResource(url: string) {
 
 function getTargetResourceURI(target: string) {
     return target.split('#')[0].split('?')[0]
+}
+
+function promiseWithTimeout<T>(
+    promise: Promise<T>,
+    ms: number,
+    timeoutError = new Error('Promise timed out')
+  ): Promise<T> {
+    // create a promise that rejects in milliseconds
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(timeoutError);
+      }, ms);
+    });
+  
+    // returns a race between timeout and the passed promise
+    return Promise.race<T>([promise, timeout]);
+}
+
+async function tryCreateSignature(store: Store, promise: Promise<SignatureInfo>, errorMessage: string, target?: string): Promise<Quad_Graph | undefined> {
+    return new Promise<Quad_Graph | undefined>(async (resolve, reject) => {
+        try {
+            const signatureInfo = await promiseWithTimeout(promise, 5000, new Error(errorMessage))
+            const signatureTriples = createSignatureTriples(signatureInfo)
+            const signatureGraph = addSignatureGraphToStore(store, signatureTriples.triples).graph 
+            console.log('Generated signature for', target)
+            resolve(signatureGraph)
+        } catch (e) {
+            console.error(e)
+            resolve(undefined)
+        }
+    })
+}
+
+
+async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, signatureOptions: {
+    privateKey: CryptoKey;
+    issuer: string;
+    verificationMethod: string;
+}): Promise<Quad_Graph | undefined> {
+    console.log('Generating signature for local dataset:', datasetId.value)
+    return await tryCreateSignature(
+        store, 
+        createRDFDatasetSignature(store, datasetId, signatureOptions),
+        `Signature generation for dataset ${datasetId} timed out.`,
+        datasetId.value
+    )
+}
+
+
+async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, signatureOptions: {
+    privateKey: CryptoKey;
+    issuer: string;
+    verificationMethod: string;
+}): Promise<Quad_Graph | undefined> {
+    console.log('Generating signature for remote RDF resource:', uri)
+    return tryCreateSignature(
+        store, 
+        createRemoteRDFSignature(uri, signatureOptions),
+        `Signature generation for ${uri} timed out.`,
+        uri
+    )
+}
+
+
+
+async function tryCreateRemoteResourceSignature(store: Store, targetResource: string, signatureOptions: {
+    privateKey: CryptoKey;
+    issuer: string;
+    verificationMethod: string;
+}): Promise<Quad_Graph | undefined> {
+    try {
+        console.log('Generating signature for remote resource:', targetResource)
+        return tryCreateSignature(
+            store, 
+            createRemoteResourceSignature(targetResource, signatureOptions),
+            `Signature generation for ${targetResource} timed out.`,
+            targetResource
+        )
+    } catch (e) {
+        console.error((e as Error).message)
+        return undefined
+    }
 }
