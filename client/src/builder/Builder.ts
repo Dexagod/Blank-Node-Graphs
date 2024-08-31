@@ -33,8 +33,8 @@ class FocusRDFStore {
     private focusNode: Term | undefined;
     private addedGraphs: Term[];
 
-    constructor() {
-        this.store = new Store();
+    constructor(store?: Store) {
+        this.store = store || new Store();
         this.focusNode = undefined;
         this.addedGraphs = [];
     }
@@ -66,11 +66,13 @@ class Session {
     // store: Store  
     private taskList: ((store: FocusRDFStore) => Promise<FocusRDFStore>)[]
     private focusNode: Term | undefined;
+    private store: Store | undefined
 
-    constructor() {
+    constructor(store?: Store) {
         // this.store = new Store()[]
         this.taskList = []
         this.focusNode = undefined;
+        this.store = store
     }
 
     addAsyncTask(task: (store: FocusRDFStore) => Promise<FocusRDFStore>) {
@@ -78,7 +80,7 @@ class Session {
     }
 
     async commitToStore() {
-        let store = new FocusRDFStore();
+        let store = new FocusRDFStore(this.store);
         for (let task of this.taskList) {
             store = await task(store)
         }
@@ -87,25 +89,35 @@ class Session {
     }
 }
 
+export type PublicSignatureOptions = {
+    privateKey: CryptoKey, 
+    issuer: string, 
+    verificationMethod: string,
+}
+
 export class Builder {
     
     private session: undefined | Session;
     private signatureOptions: SignatureOptions;
     
-    constructor(signatureOptions: SignatureOptions) {
-        this.signatureOptions = signatureOptions;
+    constructor(signatureOptions: PublicSignatureOptions) {
+        this.signatureOptions = {
+            privateKey: signatureOptions.privateKey,
+            issuer: DataFactory.namedNode(signatureOptions.issuer),
+            verificationMethod: signatureOptions.verificationMethod,
+        }
         this.session = undefined;
     }
 
-    startSession() {
+    startSession(store?: Store) {
         if (this.session !== undefined) throw new Error('Commit the previous session before opening a new one.')
-        this.session = new Session()
+        this.session = new Session(store)
         return this
     }
 
-    commit() {
+    async commit() {
         if (this.session === undefined) throw new Error('Cannot commit empty session.')
-        return this.session.commitToStore()
+        return (await this.session.commitToStore()).getStore()
     }
 
     loadRDF(url: string): Builder {
@@ -198,7 +210,10 @@ export class Builder {
         return this
     }
 
-    policy(duration = "P7D", purpose?: string[], assigner?: string, assignee?: string) {
+    policy(options: {duration?: string, purpose?: string[], assigner?: string, assignee?: string}) {
+        let {duration, purpose, assigner, assignee} = options
+        if (!duration) duration = "P7D"
+
         if (!this.session) { console.error('No session found, nothing to set policy over!'); return this; }
 
         const createPolicy = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
@@ -220,8 +235,10 @@ export class Builder {
         return this        
     }
 
-    provenance(origin?: string) {
+    provenance(options?: { origin?: string }) {
         if (!this.session) { console.error('No session found, nothing to add provenance over!'); return this; }
+        
+        const origin = options && options.origin
 
         const addProvenance = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
