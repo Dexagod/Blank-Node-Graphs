@@ -50,3 +50,12 @@ An example retrieval can be done as follows (if the service is running!)
 ```
 curl http://proxy.rubendedecker.be?url=https://pod.rubendedecker.be/profile/card
 ```
+
+## Running the custom builder
+
+An example of a custom client to build packages can be run with
+```
+cd client;
+npm install;
+ts-node /src/testfile.ts
+```
