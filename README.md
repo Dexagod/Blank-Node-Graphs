@@ -57,5 +57,5 @@ An example of a custom client to build packages can be run with
 ```
 cd client;
 npm install;
-ts-node /src/testfile.ts
+ts-node src/testfile.ts
 ```
