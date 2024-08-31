@@ -9,13 +9,19 @@ import { getResourceAsQuadArray, getResourceAsStore } from "@dexagod/rdf-retriev
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
 export interface SignatureInfo {
-    issuer: string,
+    issuer: Quad_Object,
     proofValue: string,
     verificationMethod: string,
     cryptoSuite: string,
     target: Quad_Object,
     hashMethod: string,
     canonicalizationMethod?: string,
+}
+
+export interface SignatureOptions {
+    privateKey: CryptoKey, 
+    issuer: Quad_Object, 
+    verificationMethod: string,
 }
 
 
@@ -38,7 +44,7 @@ export function createSignatureTriples( signature: SignatureInfo ) {
     const signatureTriples = [
         quad(signatureSubject, namedNode(RDF.type), namedNode(SignOntology.DataIntegrityProof)),
         quad(signatureSubject, namedNode(SignOntology.created), literal(new Date().toISOString(), XSD.dateTime)),
-        quad(signatureSubject, namedNode(SignOntology.issuer), namedNode(issuer)),
+        quad(signatureSubject, namedNode(SignOntology.issuer), issuer),
         quad(signatureSubject, namedNode(SignOntology.cryptosuite), literal(cryptoSuite)),
         quad(signatureSubject, namedNode(SignOntology.verificationMethod), namedNode(verificationMethod)),
         quad(signatureSubject, namedNode(SignOntology.proofPurpose), literal("assertionMethod")),
@@ -65,12 +71,7 @@ export function createSignatureTriples( signature: SignatureInfo ) {
  * @param signatureOptions 
  * @returns 
  */
-export async function createRDFGraphSignature( store: Store, target: Quad_Graph, signatureOptions: { 
-    privateKey: CryptoKey, 
-    issuer: string, 
-    verificationMethod: string,
-    metadataGraph?: Quad_Graph,
-}) {
+export async function createRDFGraphSignature( store: Store, target: Quad_Graph, signatureOptions: SignatureOptions) {
     // Throw error on signing the default graph
     if (target.equals(defaultGraph())) throw new Error('Invalid signature target: cannot sign the default graph.')
 
@@ -82,11 +83,7 @@ export async function createRDFGraphSignature( store: Store, target: Quad_Graph,
     return signatureInfo
 }
 
-export async function createRDFDatasetSignature( store: Store, target: Quad_Object, signatureOptions: { 
-    privateKey: CryptoKey, 
-    issuer: string, 
-    verificationMethod: string,
-}) {
+export async function createRDFDatasetSignature( store: Store, target: Quad_Object, signatureOptions: SignatureOptions) {
     // Extract contained graphs in dataset
     const containedGraphraphsInDataset = store.getQuads(target, PackOntology.contains, null, null).map(q => q.object)
     // Extract graph quads
@@ -99,30 +96,17 @@ export async function createRDFDatasetSignature( store: Store, target: Quad_Obje
     return signatureInfo
 }
 
-export async function createRemoteRDFSignature( url: string, signatureOptions: { 
-    privateKey: CryptoKey, 
-    issuer: string, 
-    verificationMethod: string,
-    metadataGraph?: Quad_Graph,
-}) {
+export async function createRemoteRDFSignature( url: string, signatureOptions: SignatureOptions) {
     const resourceQuads = await getResourceAsQuadArray(url) as Quad[]
     return createSignatureForQuadArray(resourceQuads, namedNode(url), signatureOptions );
 }
 
-export async function createRemoteRDFDatasetSignature( url: string, target: Quad_Object, signatureOptions: { 
-    privateKey: CryptoKey, 
-    issuer: string, 
-    verificationMethod: string,
-}) {
+export async function createRemoteRDFDatasetSignature( url: string, target: Quad_Object, signatureOptions: SignatureOptions) {
     const resourceStore = await getResourceAsStore(url)
     return createRDFDatasetSignature(resourceStore, target, signatureOptions)
 }
 
-async function createSignatureForQuadArray( quads: Quad[], target: Quad_Object, signatureOptions: { 
-    privateKey: CryptoKey, 
-    issuer: string, 
-    verificationMethod: string,
-}): Promise<SignatureInfo> {
+async function createSignatureForQuadArray( quads: Quad[], target: Quad_Object, signatureOptions: SignatureOptions): Promise<SignatureInfo> {
     const { privateKey, issuer, verificationMethod } = signatureOptions;
 
     // Sign over graph quads
@@ -139,11 +123,7 @@ async function createSignatureForQuadArray( quads: Quad[], target: Quad_Object, 
     }
 }
 
-export async function createRemoteResourceSignature(url: string, signatureOptions: { 
-        privateKey: CryptoKey
-        issuer: string, 
-        verificationMethod: string,
-    }) : Promise<SignatureInfo> {
+export async function createRemoteResourceSignature(url: string, signatureOptions: SignatureOptions) : Promise<SignatureInfo> {
 
     const {privateKey, issuer, verificationMethod} = signatureOptions;
 

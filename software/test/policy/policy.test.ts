@@ -1,19 +1,19 @@
 import { BlankNode, DataFactory, NamedNode, Store, Triple } from "n3";
 import { ODRL, RDF, XSD } from "@inrupt/vocab-common-rdf";
 import { createSimplePolicy } from "../../src/example/policy";
-import { Quad_Subject } from "rdf-js";
 import "jest-rdf";
-import { createRDFList } from "../../src";
-import { serializeTrigFromStore } from "../../src/util/trigUtils";
 
 const { namedNode, blankNode, literal, triple } = DataFactory;
 
-jest.mock('../../src/util/util', () => ({
-    ...jest.requireActual('../../src/util/util'),
-    generateUrnUuid: jest.fn(() => namedNode('urn:uuid:mock-uuid')),
-}));
-
 describe('createSimplePolicy', () => {
+
+    // beforeEach(() => {
+    //     jest.mock('../../src/util/util', () => ({
+    //         generateUrnUuid: jest.fn(() => namedNode('urn:uuid:mock-uuid')),
+    //         ...jest.requireActual('../../src/util/util'),
+    //     }));
+    // })
+
     it('should create a policy with no duration or purpose', () => {
         const target = namedNode("http://example.org/target");
         const result = createSimplePolicy({ target });
@@ -32,9 +32,10 @@ describe('createSimplePolicy', () => {
             triple(permissionTerm, namedNode(ODRL.action), namedNode(ODRL.read)),
         ]);
 
+
         expect(agreementTriples).toBeRdfIsomorphic([
             triple(agreementTerm, namedNode(RDF.type), namedNode(ODRL.Agreement)),
-            triple(agreementTerm, namedNode(ODRL.uid), namedNode('urn:uuid:mock-uuid')),
+            triple(agreementTerm, namedNode(ODRL.uid), agreementTriples?.filter(q => q.predicate.value === ODRL.uid)[0].object),
             triple(agreementTerm, namedNode(ODRL.permission), permissionTerm)
         ]);
     });
@@ -75,7 +76,7 @@ describe('createSimplePolicy', () => {
 
         expect(agreementTriples).toBeRdfIsomorphic([
             triple(agreementTerm, namedNode(RDF.type), namedNode(ODRL.Agreement)),
-            triple(agreementTerm, namedNode(ODRL.uid), namedNode('urn:uuid:mock-uuid')),
+            triple(agreementTerm, namedNode(ODRL.uid), agreementTriples?.filter(q => q.predicate.value === ODRL.uid)[0].object),
             triple(agreementTerm, namedNode(ODRL.permission), permissionTerm)
         ]);
     });
@@ -112,7 +113,7 @@ describe('createSimplePolicy', () => {
 
         expect(agreementTriples).toBeRdfIsomorphic([
             triple(agreementTerm, namedNode(RDF.type), namedNode(ODRL.Agreement)),
-            triple(agreementTerm, namedNode(ODRL.uid), namedNode('urn:uuid:mock-uuid')),
+            triple(agreementTerm, namedNode(ODRL.uid), agreementTriples?.filter(q => q.predicate.value === ODRL.uid)[0].object),
             triple(agreementTerm, namedNode(ODRL.permission), permissionTerm)
         ]);
     });
@@ -141,7 +142,7 @@ describe('createSimplePolicy', () => {
 
         expect(agreementTriples).toBeRdfIsomorphic([
             triple(agreementTerm, namedNode(RDF.type), namedNode(ODRL.Agreement)),
-            triple(agreementTerm, namedNode(ODRL.uid), namedNode('urn:uuid:mock-uuid')),
+            triple(agreementTerm, namedNode(ODRL.uid), agreementTriples?.filter(q => q.predicate.value === ODRL.uid)[0].object),
             triple(agreementTerm, namedNode(ODRL.permission), permissionTerm)
         ]);
     });
@@ -165,7 +166,6 @@ describe('createSimplePolicy', () => {
         const agreementTriples = result.triples.filter(triple => triple.subject.equals(agreementTerm));
 
         for (let constraintTerm of permissionConstraintTerms) {
-            console.log(constraintTerm)
             // assert it is part of a list
             expect(s.getQuads(null, namedNode(RDF.first), constraintTerm, null)).toHaveLength(1) 
             // assert it exists as a constraint
@@ -185,7 +185,7 @@ describe('createSimplePolicy', () => {
 
         expect(agreementTriples).toBeRdfIsomorphic([
             triple(agreementTerm, namedNode(RDF.type), namedNode(ODRL.Agreement)),
-            triple(agreementTerm, namedNode(ODRL.uid), namedNode('urn:uuid:mock-uuid')),
+            triple(agreementTerm, namedNode(ODRL.uid), agreementTriples?.filter(q => q.predicate.value === ODRL.uid)[0].object),
             triple(agreementTerm, namedNode(ODRL.permission), permissionTerm)
         ]);
     });
@@ -198,7 +198,6 @@ describe('createSimplePolicy', () => {
 
         const s = new Store();
         s.addQuads(result.triples)
-        serializeTrigFromStore(s).then(console.log)
 
         /**
          * 4 for purpose1
@@ -250,7 +249,7 @@ describe('createSimplePolicy', () => {
 
         expect(agreementTriples).toBeRdfIsomorphic([
             triple(agreementTerm, namedNode(RDF.type), namedNode(ODRL.Agreement)),
-            triple(agreementTerm, namedNode(ODRL.uid), namedNode('urn:uuid:mock-uuid')),
+            triple(agreementTerm, namedNode(ODRL.uid), agreementTriples?.filter(q => q.predicate.value === ODRL.uid)[0].object),
             triple(agreementTerm, namedNode(ODRL.permission), permissionTerm)
         ]);
     });

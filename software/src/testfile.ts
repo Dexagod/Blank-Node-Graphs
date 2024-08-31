@@ -51,7 +51,7 @@ async function signImage(imageURL: string) {
     );
 
     let store = new Store();
-    const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+    const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: DataFactory.namedNode("https://pod.rubendedecker.be/profile/card"), verificationMethod: publicKeyResource})
     const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
     const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
 

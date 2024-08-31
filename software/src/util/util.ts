@@ -1,14 +1,14 @@
 import { RDF } from "@inrupt/vocab-common-rdf";
-import { BlankNode, DataFactory, Quad, Quad_Graph, Store, Term, Triple } from "n3";
+import { BlankNode, DataFactory, Quad, Quad_Graph, Store, Term, NamedNode, Quad_Object, Triple } from "n3";
 import { v4 as uuidv4 } from 'uuid';
 import { renameGraph } from "../package/package";
 import moment from "moment";
-import { NamedNode, Quad_Object } from "rdf-js";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
 const SIGNATUREONTOLOGYNAMESPACE = 'https://example.org/ns/sign/'
 const PACKAGEONTOLOGYNAMESPACE= 'https://example.org/ns/pack/'
+const VERIFICATIONONTOLOGYNAMESPACE = 'https://example/org/ns/verify/'
 
 export const SignOntology = {
     NAMESPACE: SIGNATUREONTOLOGYNAMESPACE,
@@ -32,6 +32,15 @@ export const PackOntology = {
     issuer: PACKAGEONTOLOGYNAMESPACE+"issuer",
     Dataset: PACKAGEONTOLOGYNAMESPACE+"Dataset",
     contains: PACKAGEONTOLOGYNAMESPACE+"contains",
+}
+
+export const VerificationOntology = {
+    NAMESPACE: VERIFICATIONONTOLOGYNAMESPACE,
+    VerificationStatus: VERIFICATIONONTOLOGYNAMESPACE+"VerificationStatus",
+    status: VERIFICATIONONTOLOGYNAMESPACE+"status",
+    issuer: VERIFICATIONONTOLOGYNAMESPACE+"issuer",
+    verifies: VERIFICATIONONTOLOGYNAMESPACE+"verifies",
+    trustedToken: VERIFICATIONONTOLOGYNAMESPACE+"trustedToken"
 }
 
 export enum ContainmentType {
@@ -83,10 +92,26 @@ export function createRDFList(terms: Quad_Object[]): { subject: BlankNode | unde
         rest = list;
     }
         
-
     return { subject: list, quads: quads, };
+}
 
+export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad_Graph) => { graphName: NamedNode | BlankNode, metadata?: Quad[] }) {
+    const storeGraphs = store.getGraphs(null, null, null)
+    const graphList = [... new Set(storeGraphs)]
 
+    const defaultStrategy = (graphName: Quad_Graph) => { return  { graphName: blankNode() } }
+    let newDefaultGraph: undefined | NamedNode | BlankNode;
+    
+    if (!strategy) strategy = defaultStrategy
 
+    for (let graphTerm of graphList) {
+        const { graphName, metadata } = strategy(graphTerm)
+        const renamed = renameGraph(store, graphTerm, graphName)
+        if (metadata) store.addQuads(metadata)
+            
+        if (graphTerm === DataFactory.defaultGraph())
+            newDefaultGraph = renamed.graph;
+    }
 
+    return { store, defaultGraph: newDefaultGraph }
 }

@@ -1,0 +1,100 @@
+
+
+_:g1 { 
+    <http://people.org/bob/profile#me> a foaf:Person;
+        foaf:img <http://images.org/img.png>;
+        foaf:knows <http://people.org/alice/profile#me>.
+}
+
+_:g2 {
+    _:s a sign:IntegrityProof;
+        sign:issuer <http://people.org/bob/profile#me>;
+        sign:target <http://images.org/img.png>;
+        sign:hashMethod "SHA-512";
+        sign:proofValue ...;
+}
+
+_:g3 {
+    _:s a sign:IntegrityProof;
+        sign:issuer <http://people.org/alice/profile#me>;
+        sign:target <http://people.org/alice/profile#me>;
+        sign:hashMethod "SHA-512";
+        sign:proofValue ...;
+}
+
+_:g4 {
+    _:s a sign:IntegrityProof;
+        sign:issuer <http://people.org/bob/profile#me>;
+        sign:target _:g1;
+        sign:hashMethod "SHA-512";
+        sign:canonicalizationMethod "c14n";
+        sign:proofValue ...;
+}
+
+
+##### VERIFICATION SYSTEM #####
+
+#######################
+# Verification output #
+#######################
+
+_:verification a verify:VerificationStatus.
+_:verification verify:status true.
+_:verification verify:issuer <http://people.org/bob/profile#me>.
+_:verification verify:verifies <http://images.org/img.png>, _:g1.
+_:verification verify:trustedToken "opOdqmk20DMw9d92mW9d-dq1x1d0dD".
+
+_:verification2 a verify:VerificationStatus.
+_:verification2 verify:status true.
+_:verification2 verify:issuer <http://people.org/alice/profile#me>.
+_:verification2 verify:verifies <http://people.org/alice/profile#me>.
+_:verification2 verify:trustedToken "opOdqmk20DMw9d92mW9d-dq1x1d0dD".
+
+
+
+##### REASONING SYSTEM #####
+
+##############
+# Token rule #
+##############
+
+verify:TrustedTokenURI rdf:value "opOdqmk20DMw9d92mW9d-dq1x1d0dD".
+
+
+########################################
+# Example verification of triple trust #
+########################################
+
+{ 
+    ?verificationStatus a verify:VerificationStatus.
+    ?verificationStatus verify:status true.
+
+
+}
+
+
+_:policy
+    :hasPermission <use>
+    :condition c
+
+_:c left :age 
+    op :gt
+    right 18
+    trustedSource: [].
+
+{
+    _;c isVerified true;
+} <= {
+    _:g log:includes { 
+        :age :value ?val
+    }
+    _:v a verify:Verficiation.
+    _:v verify:status true.
+    _:v verify:issuer _:X.
+    trustedSource list:member _:X.
+    _:v token ?t
+
+    verify:TrustedTokenURI rdf:value ?value
+    ?t log:equalTo ?value
+}
+

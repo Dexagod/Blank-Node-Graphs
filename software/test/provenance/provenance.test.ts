@@ -1,8 +1,7 @@
-import { DataFactory, Store, Triple, Quad_Graph } from "n3";
+import { DataFactory, Store, Triple, Quad_Graph, Quad_Object } from "n3";
 import { addProvenanceGraphToStore, createProvenanceTriples, ProvenanceInfo } from "../../src/provenance/provenance";
 import { PackOntology } from "../../src/util/util";
 import "jest-rdf";
-import { Quad_Object } from "rdf-js";
 
 const { namedNode, blankNode, quad, triple } = DataFactory;
 
@@ -29,7 +28,7 @@ describe('addProvenanceGraphToStore', () => {
             triple(namedNode("http://example.org/subject2"), namedNode("http://example.org/predicate2"), namedNode("http://example.org/object2"))
         ];
 
-        let graph;
+        let graph: Quad_Graph;
         ({ store, graph} = addProvenanceGraphToStore(store, provenance)) ;
         const quadsInStore = store.getQuads(null, null, null, null);
 

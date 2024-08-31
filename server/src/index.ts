@@ -1,7 +1,7 @@
 import express from "express"
 import http from "http"
 import request from "request"
-import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteRDFSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, serializeTrigFromStore, SignatureInfo } from "../../software/src/"
+import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteRDFSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, serializeTrigFromStore, SignatureInfo, SignatureOptions } from "../../software/src/"
 import { getResourceAsStore } from "@dexagod/rdf-retrieval";
 import { DataFactory, Quad_Object, Store, BlankNode, NamedNode, Quad_Graph } from "n3";
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
@@ -95,12 +95,12 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
     // const publicKeyText = await (await fetch(publicKeyResource)).text()
     const privateKeyJSON = await (await fetch(privateKeyResource)).json()
 
-    const issuer = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me"
+    const issuer = DataFactory.namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me")
 
     // const publicKey = await importKey(publicKeyText)
     const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
 
-    const signatureOptions = {
+    const signatureOptions: SignatureOptions = {
         issuer,
         privateKey, 
         verificationMethod: publicKeyResource
@@ -141,7 +141,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
 	const policyGraph = addPolicyGraphToStore(store, policy.triples).graph
     // Create provenance over this content dataset 
 	const provenance = await createProvenanceTriples({
-        origin: resourceUrl, 
+        origin: DataFactory.namedNode(resourceUrl),
         issuer: issuer,
         target: datasetId
     })
@@ -210,11 +210,7 @@ async function tryCreateSignature(store: Store, promise: Promise<SignatureInfo>,
 }
 
 
-async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, signatureOptions: {
-    privateKey: CryptoKey;
-    issuer: string;
-    verificationMethod: string;
-}): Promise<Quad_Graph | undefined> {
+async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
     console.log('Generating signature for local dataset:', datasetId.value)
     return await tryCreateSignature(
         store, 
@@ -225,11 +221,7 @@ async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, s
 }
 
 
-async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, signatureOptions: {
-    privateKey: CryptoKey;
-    issuer: string;
-    verificationMethod: string;
-}): Promise<Quad_Graph | undefined> {
+async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
     console.log('Generating signature for remote RDF resource:', uri)
     return tryCreateSignature(
         store, 
@@ -241,11 +233,7 @@ async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, si
 
 
 
-async function tryCreateRemoteResourceSignature(store: Store, targetResource: string, signatureOptions: {
-    privateKey: CryptoKey;
-    issuer: string;
-    verificationMethod: string;
-}): Promise<Quad_Graph | undefined> {
+async function tryCreateRemoteResourceSignature(store: Store, targetResource: string, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
     try {
         console.log('Generating signature for remote resource:', targetResource)
         return tryCreateSignature(

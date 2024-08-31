@@ -1,10 +1,9 @@
-import { BlankNode, DataFactory, NamedNode, Store, Triple } from "n3";
+import { BlankNode, DataFactory, NamedNode, Store, Triple, Quad_Graph } from "n3";
 import "jest-rdf";
 import { addSignatureGraphToStore, createDatasetFromGraphsInStore, createRDFDatasetSignature, createRDFGraphSignature, createSignatureTriples, renameGraph, SignatureInfo, verifyAllSignatures, verifySignature } from "../../src";
 import { parseTrigToStore, serializeTrigFromStore } from "../../src/util/trigUtils";
 import { generateKeyPair, importKey, importPrivateKey, verifyQuads } from "@jeswr/rdfjs-sign/dist";
 import { sign, webcrypto } from "crypto";
-import { Quad_Graph } from "rdf-js";
 
 const { namedNode, blankNode, literal, triple } = DataFactory;
 
@@ -41,13 +40,13 @@ describe('createSimplePolicy', () => {
 
         const graphSignatureOptions = {
             privateKey: privateKey,
-            issuer: 'https://example.org/profile/card#me',
+            issuer: namedNode('https://example.org/profile/card#me'),
             verificationMethod: publicKeyResource,
             metadataGraph: blankNode('graph_signature')
         }
         const datasetSignatureOptions = {
             privateKey: privateKey,
-            issuer: 'https://example.org/profile/card#me',
+            issuer: namedNode('https://example.org/profile/card#me'),
             verificationMethod: publicKeyResource,
             metadataGraph: blankNode('dataset_signature')
         }

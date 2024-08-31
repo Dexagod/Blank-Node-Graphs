@@ -64,3 +64,21 @@ export function renameGraph( store: Store, source: Quad_Graph, target?: NamedNod
     return { store, graph: target}   
 }
 
+
+
+export function createDatasetQuads( store: Store, graphTerms: Quad_Graph[], metadataGraph?: Quad_Graph) {
+
+    const datasetSubject = blankNode()
+    const containingGraphTerm = metadataGraph ?  namedNode(metadataGraph.value) : defaultGraph()
+    const datasetQuads = [
+        quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
+    ]
+    for (let graphTerm of graphTerms) {
+        if (graphTerm.equals(defaultGraph())) {
+            throw new Error('Error creating dataset from graphs: cannot reference the default graph in local scope. Please rename the default graph first.')
+        }
+        datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphTerm as Quad_Object, containingGraphTerm ))
+    }
+
+    return { quads: datasetQuads, graph: containingGraphTerm, id: datasetSubject }
+}

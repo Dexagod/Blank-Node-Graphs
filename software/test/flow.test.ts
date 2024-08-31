@@ -1,6 +1,5 @@
 import { BlankNode, DataFactory, NamedNode, Store, Triple } from "n3";
 import { ODRL, RDF, XSD } from "@inrupt/vocab-common-rdf";
-import { Quad_Subject } from "rdf-js";
 import "jest-rdf";
 import { parseTrigToStore, serializeTrigFromStore } from "../src/util/trigUtils";
 import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, verifyAllSignatures } from "../src";
@@ -68,7 +67,7 @@ describe('createSimplePolicy', () => {
 
         // Create signature of profile image of Ruben
 
-        const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+        const rubenImageSignatureInfo = await createRemoteResourceSignature("https://pod.rubendedecker.be/profile/image.png", { privateKey, issuer: namedNode("https://pod.rubendedecker.be/profile/card"), verificationMethod: publicKeyResource})
         const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
         const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
         
@@ -87,7 +86,7 @@ describe('createSimplePolicy', () => {
         const datasetURI = createDatasetFromGraphsInStore(store, [rubenProfileGraph, rubenProvenanceGraph, rubenPolicyGraph, rubenImageSignatureGraph, josProfileGraph, josProvenanceGraph, josPolicyGraph]).id
         
 
-        const signatureInfo = await createRDFDatasetSignature(store, datasetURI, { privateKey, issuer: "https://pod.rubendedecker.be/profile/card", verificationMethod: publicKeyResource})
+        const signatureInfo = await createRDFDatasetSignature(store, datasetURI, { privateKey, issuer: namedNode("https://pod.rubendedecker.be/profile/card"), verificationMethod: publicKeyResource})
         const signatureTriples = createSignatureTriples(signatureInfo).triples
         const signatureGraph = addSignatureGraphToStore(store, signatureTriples).graph
         

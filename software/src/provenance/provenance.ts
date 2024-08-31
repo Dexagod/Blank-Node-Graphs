@@ -9,8 +9,8 @@ const defaultGraph = DataFactory.defaultGraph;
 const literal = DataFactory.literal;
 
 export interface ProvenanceInfo {
-    origin?: string, 
-    issuer?: string,
+    origin?: NamedNode, 
+    issuer?: NamedNode,
     target: NamedNode | BlankNode
 }
 
@@ -28,8 +28,8 @@ export function createProvenanceTriples( provenanceInfo: ProvenanceInfo ){
 
     const timestamp = new Date().toISOString()
     const provenanceGraph: Triple[] = []
-    if (origin) provenanceGraph.push(quad(target, namedNode(PackOntology.origin), namedNode(origin)))
-    if (issuer) provenanceGraph.push(quad(target, namedNode(PackOntology.issuer), namedNode(issuer)))
+    if (origin) provenanceGraph.push(quad(target, namedNode(PackOntology.origin), origin))
+    if (issuer) provenanceGraph.push(quad(target, namedNode(PackOntology.issuer), issuer))
     provenanceGraph.push(quad(target, namedNode(PackOntology.timestamp), literal(timestamp, namedNode(XSD.dateTime))))
 
     return { subject: target, triples: provenanceGraph }

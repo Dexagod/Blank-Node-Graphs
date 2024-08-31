@@ -2,16 +2,16 @@ import { getResourceAsQuadArray, getResourceAsStore } from "@dexagod/rdf-retriev
 import { importKey, signParams, verifyQuads } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto";
 import { SignatureInfo } from "./sign";
-import { DataFactory, Quad, Store } from "n3";
-import { checkContainmentType, ContainmentType, getDatasetGraphQuads, SignOntology } from "../util/util";
-import { NamedNode, Term } from "rdf-js";
-import { RDF } from "@inrupt/vocab-common-rdf";
+import { DataFactory, Quad, Store, NamedNode, Quad_Object, Term } from "n3";
+import { checkContainmentType, ContainmentType, getDatasetGraphQuads, SignOntology, VerificationOntology } from "../util/util";
+import { RDF, XSD } from "@inrupt/vocab-common-rdf";
 
-const { namedNode } = DataFactory
+const { namedNode, quad, blankNode, triple, literal } = DataFactory
 
 export type VerificationResult = {
     result: boolean,
-    target: Term,
+    target: Quad_Object,
+    issuer: Quad_Object,
     errorMessage?: string,
     verifiedContents?: NamedNode | Quad[]
 }
@@ -23,7 +23,7 @@ export async function verifyAllSignatures(store: Store): Promise<VerificationRes
     for (let subject of signatureSubjects) {
         const contentManipulationSubject = store.getQuads(subject, namedNode(SignOntology.contentManipulation), null, null)[0].object
         signatureInfoList.push({
-            issuer: store.getQuads(subject, namedNode(SignOntology.issuer), null, null)[0].object.value,
+            issuer: store.getQuads(subject, namedNode(SignOntology.issuer), null, null)[0].object,
             proofValue: store.getQuads(subject, namedNode(SignOntology.proofValue), null, null)[0].object.value,
             verificationMethod: store.getQuads(subject, namedNode(SignOntology.verificationMethod), null, null)[0].object.value,
             cryptoSuite: store.getQuads(subject, namedNode(SignOntology.cryptosuite), null, null)[0].object.value,
@@ -110,12 +110,14 @@ async function verifyRDFContentSignature(quads: Quad[], info: SignatureInfo): Pr
         return ({
             result,
             target: info.target,
+            issuer: info.issuer,
             verifiedContents: quads
         })
     } catch (e: unknown) {
         return {
             result: false,
             target: info.target,
+            issuer: info.issuer,
             errorMessage: (e as Error).message
         }
     }
@@ -134,13 +136,15 @@ async function verifyBufferContentSignature(buffer: Buffer, info: SignatureInfo)
         );
         return ({
             result,
-            target: info.target,
+            target,
+            issuer,
             verifiedContents: target as NamedNode
         })
     } catch (e: unknown) {
         return {
             result: false,
-            target: info.target,
+            target,
+            issuer,
             errorMessage: (e as Error).message
         }
     }
@@ -149,4 +153,15 @@ async function verifyBufferContentSignature(buffer: Buffer, info: SignatureInfo)
 async function getPublicKeyFromVerificationMethod(verificationMethod: string) {
     const publicKeyString = await( await fetch(verificationMethod)).text()
     return await importKey(publicKeyString)
+}
+
+export async function generateVerificationTriplesFromVerificationResult(result: VerificationResult, trustedToken?: string) {    
+    const subj = blankNode()
+    const triples = [
+        triple(subj, namedNode(RDF.type), namedNode(VerificationOntology.VerificationStatus)),
+        triple(subj, namedNode(VerificationOntology.status), literal(result.result.toString(), namedNode(XSD.boolean))),
+        triple(subj, namedNode(VerificationOntology.verifies), result.target),
+        triple(subj, namedNode(VerificationOntology.issuer), result.issuer),
+    ]
+    if(trustedToken) triples.push(triple(subj, namedNode(VerificationOntology.trustedToken), literal(trustedToken)))
 }
