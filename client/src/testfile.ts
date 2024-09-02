@@ -51,23 +51,36 @@ async function test() {
 
     const result = await serializeTrigFromStore(store)
     
+    console.log()
+    console.log('OUTPUT')
+    console.log()
+    
     console.log(result)
 
-    // console.log('#######################################')
-    // console.log('#############Evaluation################')
-    // console.log('#######################################')
+    console.log(
+`
+
+#######################################
+#############Evaluation################
+#######################################
+
+`   )
 
 
-    // const evaluator = new Evaluator("EVALUATOR_TRUST_TOKEN")
-    // const evaluatorStore = await evaluator.startSession()
-    //     .loadRDF(store.getQuads(null, null, null, null))
-    //     .evaluateSignatures({trustedIssuers: ['https://pod.rubendedecker.be/profile/card#me']})
-    //     .commit()
+    const evaluator = new Evaluator("EVALUATOR_TRUST_TOKEN")
+    const evaluatorStore = await evaluator.startSession()
+        .loadRDF(store.getQuads(null, null, null, null))
+        .evaluateSignatures({trustedIssuers: ['https://pod.rubendedecker.be/profile/card#me']})
+        .evaluateProvenance({ requireTrusted: true, retrievedBy: ['https://pod.rubendedecker.be/profile/card#me']})
+        .commit()
 
-    // const result2 = await serializeTrigFromStore(evaluatorStore)
+    const result2 = await serializeTrigFromStore(evaluatorStore)
 
-    // console.log(result2)
+    console.log()
+    console.log('OUTPUT')
+    console.log()
 
+    console.log(result2)
 }
 
 test()

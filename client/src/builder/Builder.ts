@@ -55,8 +55,6 @@ class FocusRDFStore {
         this.focusNode = datasetId;
         this.addedGraphs = graph ? [ graph ] : []
     }
-    
-
 }
 
 class Session {
