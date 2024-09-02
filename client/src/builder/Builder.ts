@@ -1,8 +1,5 @@
-import { Quad, Quad_Graph, Quad_Object, Store, DataFactory, BlankNode, Term, NamedNode } from "n3";
-import { 
-    addPolicyGraphToStore,
-    addProvenanceGraphToStore,
-    addSignatureGraphToStore, 
+import { Quad, Quad_Graph, Quad_Object, Store, BlankNode, Term, NamedNode } from "n3";
+import {
     checkContainmentType, 
     ContainmentType, 
     createDatasetFromGraphsInStore, 
@@ -22,8 +19,9 @@ import {
 } from "../../../software/src/"
 
 import { getResourceAsStore } from "@dexagod/rdf-retrieval";
-import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
-import { webcrypto } from "crypto"
+
+import { DataFactory } from "../../../software/src";
+const { namedNode, blankNode, literal, quad, triple } = DataFactory
 
 const DPV = "https://w3id.org/dpv#";
 
@@ -103,7 +101,7 @@ export class Builder {
     constructor(signatureOptions: PublicSignatureOptions) {
         this.signatureOptions = {
             privateKey: signatureOptions.privateKey,
-            issuer: DataFactory.namedNode(signatureOptions.issuer),
+            issuer: namedNode(signatureOptions.issuer),
             verificationMethod: signatureOptions.verificationMethod,
         }
         this.session = undefined;
@@ -181,7 +179,8 @@ export class Builder {
             }
             const awaitedSignatureQuads = await Promise.all(signatureWaitList)
             for (let signatureQuads of awaitedSignatureQuads) {
-                if(signatureQuads) store.addQuads(signatureQuads)
+                if(!signatureQuads) continue;
+                store.addQuads(signatureQuads)
             }
             return store
         }
@@ -226,8 +225,8 @@ export class Builder {
                 assigner,
                 assignee
             })
-            const graph =  DataFactory.blankNode()
-            const quads = pol.triples.map(t => DataFactory.quad(t.subject, t.predicate, t.object, graph))
+            const graph =  blankNode()
+            const quads = pol.triples.map(t => quad(t.subject, t.predicate, t.object, graph))
             store.addQuads(quads)
             return store
         }
@@ -245,12 +244,12 @@ export class Builder {
             if (!focus) { console.error('Cannot create signature of undefined focus node!'); return store; }
             const issuer = this.signatureOptions.issuer as NamedNode;
             const provenance = await createProvenanceTriples({
-                origin: origin ? DataFactory.namedNode(origin) : undefined,
+                origin: origin ? namedNode(origin) : undefined,
                 issuer,
                 target: focus as NamedNode | BlankNode
             })
-            const graph =  DataFactory.blankNode()
-            const quads = provenance.triples.map(t => DataFactory.quad(t.subject, t.predicate, t.object, graph))
+            const graph = blankNode()
+            const quads = provenance.triples.map(t => quad(t.subject, t.predicate, t.object, graph))
             store.addQuads(quads)
             return store
         }
@@ -263,8 +262,8 @@ export class Builder {
 
         const createDataset = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const dataset = createDatasetQuads(store.getStore(), store.getAddedGraphs() as Quad_Graph[])
-            const graph =  DataFactory.blankNode()
-            const quads = dataset.quads.map(t => DataFactory.quad(t.subject, t.predicate, t.object, graph))
+            const graph =  blankNode()
+            const quads = dataset.quads.map(t => quad(t.subject, t.predicate, t.object, graph))
             store.addQuads(quads)
             store.scopeOutDatasetFocus(dataset.id, graph)
             return store
@@ -324,8 +323,9 @@ async function tryCreateSignature(promise: Promise<SignatureInfo>, errorMessage:
         try {
             const signatureInfo = await promiseWithTimeout(promise, 5000, new Error(errorMessage))
             const signatureTriples = createSignatureTriples(signatureInfo).triples
-            const graph = DataFactory.blankNode();
-            resolve(signatureTriples.map(t => DataFactory.quad(t.subject, t.predicate, t.object, graph)))
+            const graph = blankNode();
+            console.log(`creating signature graph with graph uri ${graph.value}`)
+            resolve(signatureTriples.map(t => quad(t.subject, t.predicate, t.object, graph)))
         } catch (e) {
             console.error(e)
             resolve(undefined)

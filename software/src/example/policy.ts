@@ -67,7 +67,7 @@ export function createSimplePolicy(
             for (let specificPurpose of purpose) {
                 let purposeConstraintSubj = blankNode()
                 policyGraph = policyGraph.concat([
-                    quad(purposeConstraintSubj, namedNode(RDF.type), namedNode(ODRL.constraint)),
+                    quad(purposeConstraintSubj, namedNode(RDF.type), namedNode(ODRL.Constraint)),
                     quad(purposeConstraintSubj, namedNode(ODRL.leftOperand), namedNode("https://w3id.org/oac#Purpose")),
                     quad(purposeConstraintSubj, namedNode(ODRL.operator), namedNode(ODRL.eq)),
                     quad(purposeConstraintSubj, namedNode(ODRL.rightOperand), namedNode(specificPurpose))

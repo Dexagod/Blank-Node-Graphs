@@ -15,4 +15,4 @@ export * from "./util/util"
 export * from "./util/signUtils"
 export * from "./util/trigUtils"
 
-
+export { DataFactory } from "n3"

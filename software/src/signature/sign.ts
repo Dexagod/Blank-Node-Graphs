@@ -34,11 +34,10 @@ export function addSignatureGraphToStore( store: Store, signature: Triple[], gra
     return { store, graph }
 }
 
-
 export function createSignatureTriples( signature: SignatureInfo ) {
     const { issuer, verificationMethod, cryptoSuite, proofValue, target, hashMethod, canonicalizationMethod } = signature;
-``
     const signatureSubject = blankNode();
+    console.log(`creating signatureSubject with subject uri ${signatureSubject.value}`)
     const contentManipulationSubject = blankNode()
 
     const signatureTriples = [

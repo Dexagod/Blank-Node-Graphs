@@ -3,11 +3,14 @@ import http from "http"
 import request from "request"
 import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteRDFSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, serializeTrigFromStore, SignatureInfo, SignatureOptions } from "../../software/src/"
 import { getResourceAsStore } from "@dexagod/rdf-retrieval";
-import { DataFactory, Quad_Object, Store, BlankNode, NamedNode, Quad_Graph } from "n3";
+import { Quad_Object, Store, BlankNode, NamedNode, Quad_Graph } from "n3";
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto"
 
 import { program } from "commander"
+
+import { DataFactory } from "../../software/src";
+const { namedNode, blankNode, literal, quad, triple, defaultGraph } = DataFactory
 
 const DPV = "https://w3id.org/dpv#";
 
@@ -95,7 +98,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
     // const publicKeyText = await (await fetch(publicKeyResource)).text()
     const privateKeyJSON = await (await fetch(privateKeyResource)).json()
 
-    const issuer = DataFactory.namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me")
+    const issuer = namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me")
 
     // const publicKey = await importKey(publicKeyText)
     const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
@@ -112,7 +115,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
     console.log("processing", resourceUrl)
 
 	const store = await getResourceAsStore(resourceUrl) as Store;
-	renameGraph(store, DataFactory.defaultGraph())
+	renameGraph(store, defaultGraph())
 	
     const signatureWaitList: Promise<any>[] = []
     console.log(singPredicates)
@@ -141,7 +144,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
 	const policyGraph = addPolicyGraphToStore(store, policy.triples).graph
     // Create provenance over this content dataset 
 	const provenance = await createProvenanceTriples({
-        origin: DataFactory.namedNode(resourceUrl),
+        origin: namedNode(resourceUrl),
         issuer: issuer,
         target: datasetId
     })
