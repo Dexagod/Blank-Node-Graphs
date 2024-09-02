@@ -35,17 +35,17 @@ async function test() {
         // sign external resource
         .signExternal('https://www.rubendedecker.be')
         // // wrap all generated graphs in a dataset
-        // .dataset()
+        .dataset()
         // // add provenance to dataset
-        // .provenance(provenanceOptions)
+        .provenance(provenanceOptions)
         // // add policy info to dataset
-        // .policy(policyOptions)
+        .policy(policyOptions)
         // // add siganture to dataset
-        // .sign()
+        .sign()
         // // wrap metadata in dataset
-        // .dataset()
+        .dataset()
         // // sign metadata dataset
-        // .sign()
+        .sign()
         // run all operations, and commit result to store
         .commit();
 

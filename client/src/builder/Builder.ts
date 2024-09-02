@@ -198,10 +198,10 @@ export class Builder {
         const signRDFExternal = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             if (canonicalize && await isRDFResource(url)) {
                 const quads = await tryCreateRemoteRDFResourceSignature(url, this.signatureOptions)
-                if(quads) store.addQuads
+                if(quads) store.addQuads(quads)
             } else {
                 const quads = await tryCreateRemoteResourceSignature(url, this.signatureOptions)
-                if(quads) store.addQuads
+                if(quads) store.addQuads(quads)
             }   
             return store
         }
