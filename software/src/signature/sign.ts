@@ -41,7 +41,7 @@ export function createSignatureTriples( signature: SignatureInfo ) {
 
     const signatureTriples = [
         quad(signatureSubject, namedNode(RDF.type), namedNode(SignOntology.DataIntegrityProof)),
-        quad(signatureSubject, namedNode(SignOntology.created), literal(new Date().toISOString(), XSD.dateTime)),
+        quad(signatureSubject, namedNode(SignOntology.created), literal(new Date().toISOString(), namedNode(XSD.dateTime))),
         quad(signatureSubject, namedNode(SignOntology.issuer), issuer),
         quad(signatureSubject, namedNode(SignOntology.cryptosuite), literal(cryptoSuite)),
         quad(signatureSubject, namedNode(SignOntology.verificationMethod), namedNode(verificationMethod)),
