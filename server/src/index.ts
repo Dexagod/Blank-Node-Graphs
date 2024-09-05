@@ -105,7 +105,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
     // const publicKeyText = await (await fetch(publicKeyResource)).text()
     const privateKeyJSON = await (await fetch(privateKeyResource)).json()
 
-    const issuer = namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile#me")
+    const issuer = namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
 
     // const publicKey = await importKey(publicKeyText)
     const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
