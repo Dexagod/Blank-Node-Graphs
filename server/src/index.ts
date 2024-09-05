@@ -15,7 +15,7 @@ import { DataFactory } from "../../software/src";
 const { namedNode, blankNode, literal, quad, triple, defaultGraph } = DataFactory
 
 const logLevel = process.env.LOG_LEVEL
-const logger = createLogger({ level: logLevel || 'warn', transports: [ new (Console)() ]})
+const logger = createLogger({ level: logLevel || 'info', transports: [ new (Console)() ]})
 
 export function log(entry: LogEntry) { logger.log(entry) }
 
