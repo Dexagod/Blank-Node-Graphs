@@ -66,21 +66,26 @@ async function test() {
 
 `   )
 
-
     const evaluator = new Evaluator("EVALUATOR_TRUST_TOKEN")
-    const evaluatorStore = await evaluator.startSession()
+    
+    const trigString = await evaluator.startSession()
         .loadRDF(store.getQuads(null, null, null, null))
         .evaluateSignatures({trustedIssuers: ['https://pod.rubendedecker.be/profile/card#me']})
-        .evaluateProvenance({ requireTrusted: true, retrievedBy: ['https://pod.rubendedecker.be/profile/card#me']})
-        .commit()
+        .evaluatePolicies({ purpose: DPV+"ServicePersonalisation" })
+        .evaluateProvenance({ retrievedBy: ['https://pod.rubendedecker.be/profile/card#me']})
+        .commitToString(true)
 
-    const result2 = await serializeTrigFromStore(evaluatorStore)
+    // const result2 = await serializeTrigFromStore(evaluatorStore)
 
     console.log()
     console.log('OUTPUT')
     console.log()
 
-    console.log(result2)
+    console.log(trigString)
+
+    process.exit() 
+    // Idk but it hangs a second or 2 after evaluating everything instantly. 
+    // No clue where I have a leaking promise waiting, or if it's some ts-node shenanigans
 }
 
 test()

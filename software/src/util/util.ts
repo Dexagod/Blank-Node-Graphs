@@ -3,6 +3,7 @@ import { BlankNode, DataFactory, Quad, Quad_Graph, Store, Term, NamedNode, Quad_
 import { v4 as uuidv4 } from 'uuid';
 import { renameGraph } from "../package/package";
 import moment from "moment";
+import { Quad_Subject } from "rdf-js";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
 
@@ -93,6 +94,16 @@ export function createRDFList(terms: Quad_Object[]): { subject: BlankNode | unde
     }
         
     return { subject: list, quads: quads, };
+}
+
+export function unpackRDFList(store: Store, base: Quad_Subject, graph?: Quad_Graph | null): Quad_Object[] {
+    graph = graph || null
+    const first = store.getQuads(base, RDF.first, null, graph).map(q => q.object)
+    const rest = store.getQuads(base, RDF.rest, null, graph).map(q => q.object)
+    if (first.length && first.length !== 1) { throw new Error(`Malformed list at base ${base}`) }
+    if (rest.length && rest.length !== 1) { throw new Error(`Malformed list at base ${base}`) }
+    if (rest[0].equals(namedNode(RDF.nil))) return [ first[0] ]
+    else return [ first [0] ].concat(unpackRDFList(store, rest[0] as Quad_Subject, graph))
 }
 
 export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad_Graph) => { graphName: NamedNode | BlankNode, metadata?: Quad[] }) {

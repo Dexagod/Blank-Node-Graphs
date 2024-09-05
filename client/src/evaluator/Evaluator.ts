@@ -1,9 +1,10 @@
-import { Quad, Store, Quad_Subject, Quad_Object, Quad_Graph } from "n3";
+import { Quad, Store, Quad_Subject, Quad_Object, Quad_Graph, Term } from "n3";
 import { checkContainmentType, ContainmentType, generateVerificationTriplesFromVerificationResult, PackOntology, serializeTrigFromStore, VerificationOntology, verifyAllSignatures } from "../../../software/src/"
-import { XSD } from "@inrupt/vocab-common-rdf";
+import { XSD, RDF, ODRL } from "@inrupt/vocab-common-rdf";
 
 import { DataFactory } from "../../../software/src";
-const { namedNode, blankNode, literal, quad } = DataFactory
+import { evaluateConstraintCompliance, PURPOSE } from "./PolicyEvaluator";
+const { namedNode, blankNode, literal, quad, defaultGraph } = DataFactory
 
 const LOCALONTOLOGYNAMESPACE = "https://example.org/ns/local/"
 
@@ -31,6 +32,20 @@ class Session {
     addTag(tag: string) { this.requiredTags.push(tag)}
 
     async commitToStore(store?: Store) {
+        const finalStore = this.commit(store)
+        return finalStore
+    }
+
+    async commitToString(store?: Store, flatten?: boolean): Promise<String> {
+        const finalStore = await this.commit(store)
+        if (flatten) {
+            return await flattenTrig(finalStore)
+        } else {
+            return await serializeTrigFromStore(finalStore)
+        }
+    }
+
+    private async commit(store?: Store) {
         store = store || new Store()
         for (let task of this.taskList) {
             store = await task(store)
@@ -80,7 +95,14 @@ export class Evaluator {
 
     async commit() {
         if (this.session === undefined) throw new Error('Cannot commit empty session.')
-        return await this.session.commitToStore()
+        const store = await this.session.commitToStore()
+        return store;
+    }
+    
+    async commitToString(flatten?: boolean) {
+        if (this.session === undefined) throw new Error('Cannot commit empty session.')
+        const store = await this.session.commitToStore()
+        return await this.session.commitToString(store, flatten);
     }
 
     loadRDF(quads: Quad[]) : Evaluator {
@@ -146,14 +168,46 @@ export class Evaluator {
     }
 
 
-    evaluatePolicies(options?:{ requireTrusted?: true }) {
+    evaluatePolicies(options:{ requireTrusted?: true, purpose: string }) {
         if (this.session === undefined){
             throw new Error('Cannot evaluate signatures. Initialize a session and add data to be evaluated first!')
         }
         this.session.addTag(LocalOntology.PolicyValidated)
 
-        this.session.addAsyncTask(async (store: Store) => {
+        // todo:: implement requireTrusted! and do it maybe in a better way for all processing?
+
+        this.session.addAsyncTask(async (store: Store): Promise<Store> => {
+            const complyingGraphs: Quad_Object[] = []
             
+            let agreements = store.getQuads(null, namedNode(RDF.type), namedNode(ODRL.Agreement), null).map(q => q.subject)
+            for (let agreement of agreements) {
+                let permissions = store.getQuads(agreement, namedNode(ODRL.permission), null, null).map(q => q.object)
+                for (let permission of permissions) {
+                    const usePermission = store.getQuads(permission, namedNode(ODRL.action), namedNode(ODRL.use), null)
+                    if (!usePermission) continue;
+
+                    // Target for which permissions are calculated
+                    const permissionTarget = store.getQuads(permission, namedNode(ODRL.target), null, null).map(q => q.object)[0]
+                    const constraints = store.getQuads(permission, namedNode(ODRL.constraint), null, null).map(q => q.object)
+
+                    let compliant = true
+                    for (let constraint of constraints) {
+                        const constraint_valid = evaluateConstraintCompliance(store, constraint as Quad_Subject, options.purpose)
+                        if(!constraint_valid) compliant = false
+                    }
+                    if (compliant) { complyingGraphs.push(permissionTarget) }
+                }
+            }
+            for (let term of complyingGraphs) {
+                const containmentType = await checkContainmentType(store, term as Term)
+                if (containmentType === ContainmentType.Dataset) {
+                    for (let graph of store.getQuads(term, namedNode(PackOntology.contains), null, null).map(q => q.object)) {
+                        store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.PolicyValidated))
+                    }
+                } else {
+                    store.addQuad(term as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.PolicyValidated))
+                }   
+            }
             return store;
         })
         return this;
@@ -173,7 +227,6 @@ export class Evaluator {
         if (options?.retrievedAfter) requirePredicates.push(PackOntology.timestamp)
 
         this.session.addAsyncTask(async (store: Store) => {
-            // console.log('before', await serializeTrigFromStore(store))
             let graphs: Quad_Graph[] = []
             if (options?.requireTrusted) {
                 // list includes messes up with RDF namednodes and blanknodes? equal checking on value instead
@@ -221,7 +274,6 @@ export class Evaluator {
                             newGraphs.push(graph)
                         }
                     }
-                    console.log(graph, predicate, graphs, newGraphs)
                 }
                 graphs = newGraphs
             }
@@ -234,132 +286,24 @@ export class Evaluator {
     }
 }
 
+async function flattenTrig(store: Store) { 
+    const graphs = store.getGraphs(null, null, null)
+    for (let graph of graphs) {
+        const graphAsSubj = store.getQuads(graph, null, null, null)
+        const graphAsObj = store.getQuads(null, null, graph, null)
 
-
-
-
-
-/** 
- 
-
-Get all triples t for which they are signed by an issuer in issuerList and can be used for the purposes p1 and p2:
-
-{ true } => { local:ExternalVerifierTrustedToken log:equalTo "EXTERNAL_VERIFIED" }  
-{ true } => { local:SignatureVerificationToken log:equalTo "SIGNATURE_VERIFIED" }
-{ true } => { local:PolicyVerificationToken log:equalTo "POLICY_VERIFIED" }
-{ true } => { local:ConstraintVerificationToken log:equalTo "POLICY_VERIFIED" }
-{ true } => { local:TrustedIssuers log:equalTo [<http://pod.rubendedecker.be/profile/card#me>] }
-
-
-# First, we need to LIFT the policies from their graphs based on certain requirements (if there is a signature, it needs to be lifted from that)
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-?graph log:includes ?t
-
-// propagate signatures on datasets to individual graphs
-{
-    ?verificationResult verify:verifies ?dataset
-    ?dataset pack:contains ?graph
-} => {
-    ?verificationResult verify:verifies ?graph
+        if (graphAsSubj.length === 0 && graphAsObj.length === 0) {
+            const quads = store.getQuads(null, null, null, graph)
+            store.removeQuads(quads)
+            store.addQuads(quads.map(q => quad(q.subject, q.predicate, q.object, defaultGraph())))
+        } else {
+            // duplicate graph contents in default graph if there are links to the graph itself
+            store.addQuads(
+                store.getQuads(null, null, null, graph)
+                    .map(q => quad(q.subject, q.predicate, q.object, defaultGraph())
+                )
+            )
+        }
+    }
+    return await serializeTrigFromStore(store);
 }
-
-
-// check signature verification output
-{
-    ?graph local:hasToken local:SignatureVerificationToken
-} <= {
-    ?verificationResult verify:token ?token
-    ?token log:equalTo local:ExternalVerifierTrustedToken
-    ?verificationResult verify:verifies ?graph
-    ?verificationResult verify:status true
-    ?verificationResult verify:issuer ?issuer
-    local:trustedIssuers list:member ?issuer
-}
-
-// check policy
-{ 
-    ?policyOrPermission odrl:target ?dataset
-    ?dataset pack:contains ?graph
-} => { 
-    ?policyOrPermission odrl:target ?graph 
-}
-
-
-// check policy requirements
-{
-    ?perm a odrl:Permission
-} <= {
-    ?policy odrl:permission ?perm
-}
-
-{
-    ?constr a odrl:Constraint
-} <= {
-    ?perm a odrl:Permission
-    ?perm odrl:constraint ?constr
-}
-
-{ 
-    ?constr local:hasToken local:ConstraintVerificationToken
-} <= {
-    ?constr
-}
-
-// check policy requirements
-{
-    ?graph local:hasToken local:PolicyVerificationToken
-} <= {
-    ?constraint odrl: 
-    ?policy odrl:issuer ?issuer
-    local:trustedIssuers list:member ?issuer
-    ?policy odrl:permission ?perm
-    ?perm odrl:target ?graph
-    ?perm odrl:constraint ?graph
-}
-
-
-// check policy requirements
-{
-    ?graph local:hasToken local:PolicyVerificationToken
-} <= {
-    ?policy a odrl:Agreement
-    ?policy odrl:issuer ?issuer
-    local:trustedIssuers list:member ?issuer
-    ?policy odrl:permission ?perm
-    ?perm odrl:target ?graph
-    ?perm odrl:constraint ?graph
-}
-
-
-// check policy for graph
-{
-}
-data in Graph
-
-*?
-*/
