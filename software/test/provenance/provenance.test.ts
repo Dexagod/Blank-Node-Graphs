@@ -86,13 +86,13 @@ describe('createProvenanceTriples', () => {
     it('should create provenance triples with origin', () => {
         const provenanceInfo: ProvenanceInfo = {
             target: namedNode("http://example.org/target"),
-            origin: "http://example.org/origin"
+            origin: namedNode("http://example.org/origin")
         };
         const result = createProvenanceTriples(provenanceInfo);
         const endDate = result.triples.find(t => t.predicate.equals(namedNode(PackOntology.timestamp)))?.object
 
         expect(result.triples).toBeRdfIsomorphic([
-            quad(provenanceInfo.target, namedNode(PackOntology.origin), namedNode(provenanceInfo.origin!)),
+            quad(provenanceInfo.target, namedNode(PackOntology.origin), provenanceInfo.origin!),
             quad(provenanceInfo.target, namedNode(PackOntology.timestamp), endDate as Quad_Object)
         ]);
     });
@@ -100,13 +100,13 @@ describe('createProvenanceTriples', () => {
     it('should create provenance triples with issuer', () => {
         const provenanceInfo: ProvenanceInfo = {
             target: namedNode("http://example.org/target"),
-            issuer: "http://example.org/issuer"
+            issuer: namedNode("http://example.org/issuer")
         };
         const result = createProvenanceTriples(provenanceInfo);
         const endDate = result.triples.find(t => t.predicate.equals(namedNode(PackOntology.timestamp)))?.object
 
         expect(result.triples).toBeRdfIsomorphic([
-            quad(provenanceInfo.target, namedNode(PackOntology.issuer), namedNode(provenanceInfo.issuer!)),
+            quad(provenanceInfo.target, namedNode(PackOntology.issuer), provenanceInfo.issuer!),
             quad(provenanceInfo.target, namedNode(PackOntology.timestamp), endDate as Quad_Object)
         ]);
     });
@@ -114,15 +114,15 @@ describe('createProvenanceTriples', () => {
     it('should create provenance triples with both origin and issuer', () => {
         const provenanceInfo: ProvenanceInfo = {
             target: namedNode("http://example.org/target"),
-            origin: "http://example.org/origin",
-            issuer: "http://example.org/issuer"
+            origin: namedNode("http://example.org/origin"),
+            issuer: namedNode("http://example.org/issuer")
         };
         const result = createProvenanceTriples(provenanceInfo);
         const endDate = result.triples.find(t => t.predicate.equals(namedNode(PackOntology.timestamp)))?.object
 
         expect(result.triples).toBeRdfIsomorphic([
-            quad(provenanceInfo.target, namedNode(PackOntology.origin), namedNode(provenanceInfo.origin!)),
-            quad(provenanceInfo.target, namedNode(PackOntology.issuer), namedNode(provenanceInfo.issuer!)),
+            quad(provenanceInfo.target, namedNode(PackOntology.origin), provenanceInfo.origin!),
+            quad(provenanceInfo.target, namedNode(PackOntology.issuer), provenanceInfo.issuer!),
             quad(provenanceInfo.target, namedNode(PackOntology.timestamp), endDate as Quad_Object)
         ]);
     });

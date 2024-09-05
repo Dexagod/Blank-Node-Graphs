@@ -71,10 +71,10 @@ describe('createSimplePolicy', () => {
         const rubenImageSignatureTriples = createSignatureTriples(rubenImageSignatureInfo).triples
         const rubenImageSignatureGraph = addSignatureGraphToStore(store, rubenImageSignatureTriples).graph
         
-        const rubenProvenanceTriples = createProvenanceTriples({target: rubenProfileGraph, origin: "https://pod.rubendedecker.be/profile/card", issuer: "https://pod.rubendedecker.be/profile/card#me"})
+        const rubenProvenanceTriples = createProvenanceTriples({target: rubenProfileGraph, origin: namedNode("https://pod.rubendedecker.be/profile/card"), issuer: namedNode("https://pod.rubendedecker.be/profile/card#me")})
         const rubenProvenanceGraph = addProvenanceGraphToStore(store, rubenProvenanceTriples.triples).graph
         
-        const josProvenanceTriples = createProvenanceTriples({target: josProfileGraph, origin: "https://josd.github.io/card.ttl", issuer: "https://josd.github.io/card.ttl#me"})
+        const josProvenanceTriples = createProvenanceTriples({target: josProfileGraph, origin: namedNode("https://josd.github.io/card.ttl"), issuer: namedNode("https://josd.github.io/card.ttl#me")})
         const josProvenanceGraph = addProvenanceGraphToStore(store, josProvenanceTriples.triples).graph
 
         const rubenPolicyTriples = createSimplePolicy({ target: rubenProfileGraph, assigner: "https://pod.rubendedecker.be/profile/card#me", duration: "P1Y", purpose: ["https://w3id.org/dpv#ServiceProvision"]})
