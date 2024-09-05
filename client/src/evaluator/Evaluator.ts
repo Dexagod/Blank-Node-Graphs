@@ -1,9 +1,10 @@
 import { Quad, Store, Quad_Subject, Quad_Object, Quad_Graph, Term } from "n3";
 import { checkContainmentType, ContainmentType, generateVerificationTriplesFromVerificationResult, PackOntology, serializeTrigFromStore, VerificationOntology, verifyAllSignatures } from "../../../software/src/"
 import { XSD, RDF, ODRL } from "@inrupt/vocab-common-rdf";
+import { evaluateConstraintCompliance, PURPOSE } from "./PolicyEvaluator";
+import { log } from "winston"
 
 import { DataFactory } from "../../../software/src";
-import { evaluateConstraintCompliance, PURPOSE } from "./PolicyEvaluator";
 const { namedNode, blankNode, literal, quad, defaultGraph } = DataFactory
 
 const LOCALONTOLOGYNAMESPACE = "https://example.org/ns/local/"
@@ -41,14 +42,22 @@ class Session {
         if (flatten) {
             return await flattenTrig(finalStore)
         } else {
-            return await serializeTrigFromStore(finalStore)
+            const str = await serializeTrigFromStore(finalStore)
+            return str;
         }
     }
 
     private async commit(store?: Store) {
         store = store || new Store()
         for (let task of this.taskList) {
-            store = await task(store)
+            let newStore;
+            try {
+                newStore = await task(store)
+            } catch (e) {
+                log({level: "error", message: `Could not finalize task: ${(e as Error).message}`})
+                newStore = store;
+            }
+            store = newStore
         }
 
         // Store is in final configuration
@@ -82,9 +91,11 @@ export class Evaluator {
     
     session: Session | undefined;
     token: string;
+    verbose: boolean;
     
-    constructor(token: string) {
+    constructor(token: string, verbose?: boolean) {
         this.token = token;
+        this.verbose = !!verbose;
     }    
 
     startSession() {
@@ -101,8 +112,7 @@ export class Evaluator {
     
     async commitToString(flatten?: boolean) {
         if (this.session === undefined) throw new Error('Cannot commit empty session.')
-        const store = await this.session.commitToStore()
-        return await this.session.commitToString(store, flatten);
+        return await this.session.commitToString(undefined, flatten);
     }
 
     loadRDF(quads: Quad[]) : Evaluator {
@@ -122,12 +132,15 @@ export class Evaluator {
             throw new Error('Cannot evaluate signatures. Initialize a session and add data to be evaluated first!')
         }
         this.session.addAsyncTask(async (store: Store) => {
+
+            log({level: "verbose", message: `Evaluating Signatures`})
+
             this.session?.addTag(LocalOntology.SignatureValidated)
 
             const verificationResults = await verifyAllSignatures(store);
             for (let result of verificationResults) {
                 if (!result.result) {
-                    console.error(`Failed to verify signature of ${result.target.value}`)
+                    log({level: "warn", message: `Failed to verify signature of ${result.target.value}`})
                     continue;
                 }
                 // This is for when we will use reasoning
@@ -135,7 +148,7 @@ export class Evaluator {
                 if (options.trustedIssuers 
                     && options.trustedIssuers.length 
                     &&!options.trustedIssuers.includes(result.issuer.value)){
-                    console.error(`Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target}`)
+                        log({level: "warn", message: `Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target}`})
                 }
                 const target = result.target
                 const type = await checkContainmentType(store, target)
@@ -160,7 +173,7 @@ export class Evaluator {
                     store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.SignatureValidated))
                 }
                 // Add triple indicating trust link for loose URLs
-                console.log(`Verified signature of ${target.value}`)
+                log({level: "info", message: `Verified signature of ${target.value}`})
             }
             return store;
         })
@@ -177,6 +190,7 @@ export class Evaluator {
         // todo:: implement requireTrusted! and do it maybe in a better way for all processing?
 
         this.session.addAsyncTask(async (store: Store): Promise<Store> => {
+            log({level: "verbose", message: `Evaluating Policies`})
             const complyingGraphs: Quad_Object[] = []
             
             let agreements = store.getQuads(null, namedNode(RDF.type), namedNode(ODRL.Agreement), null).map(q => q.subject)
@@ -227,6 +241,7 @@ export class Evaluator {
         if (options?.retrievedAfter) requirePredicates.push(PackOntology.timestamp)
 
         this.session.addAsyncTask(async (store: Store) => {
+            log({level: "verbose", message: `Evaluating Provenance`})
             let graphs: Quad_Graph[] = []
             if (options?.requireTrusted) {
                 // list includes messes up with RDF namednodes and blanknodes? equal checking on value instead

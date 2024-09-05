@@ -2,6 +2,7 @@ import { Quad_Subject, Store } from "n3";
 import { XSD, RDF, ODRL } from "@inrupt/vocab-common-rdf";
 
 import { DataFactory, parseTrigToStore, serializeTrigFromStore, unpackRDFList } from "../../../software/src";
+import { log } from "winston";
 const { namedNode, blankNode, literal, quad } = DataFactory
 export const PURPOSE = "https://w3id.org/oac#Purpose"
 
@@ -16,7 +17,7 @@ export type ConstraintEvaluation = {
 
 export function evaluateConstraintCompliance(store: Store, constraint: Quad_Subject, purpose: string): boolean {
     const result = evaluateConstraint(store, constraint, purpose)
-    console.log('evaluation',JSON.stringify(result, null, 2), purpose)
+    log({level: "info", message: `Evaluated ODRL constraints: ${JSON.stringify(result, null, 2)}`})
     return result.status;
 }
 
@@ -68,7 +69,7 @@ function evaluateConstraint(store: Store, constraint: Quad_Subject, purpose: str
         !operatorList || operatorList.length > 1 || 
         !rightOperandList ||  rightOperandList.length > 1
     ) {
-        console.error(`Could not evaluate policy constraint ${constraint} due to incorrectly formatted ODRL.`)
+        log({level: "warn", message: `Could not evaluate policy constraint ${constraint} due to incorrectly formatted ODRL.`})
         return { status: false };
     }
     const left = leftOperandList[0]
@@ -80,7 +81,7 @@ function evaluateConstraint(store: Store, constraint: Quad_Subject, purpose: str
     switch (left) {
         case PURPOSE:
             if (op !== ODRL.eq) {
-                console.error(`Purpose constraint ${constraint} must use ODRL:eq as operator`)
+                log({level: "warn", message: `Purpose constraint ${constraint} must use ODRL:eq as operator.`})
                 return { status: false, left, op, right};
             }
 
@@ -96,7 +97,7 @@ function evaluateConstraint(store: Store, constraint: Quad_Subject, purpose: str
             try { 
                 targetDate = new Date(right) 
             } catch (e) {
-                console.error(`Error converting date ${right}`)
+                log({level: "warn", message: `Error converting date ${right}`})
                 return { status: false, left, op, right};
             }
 
@@ -113,12 +114,12 @@ function evaluateConstraint(store: Store, constraint: Quad_Subject, purpose: str
                     return { status: false, left, op, right};
                 }
             } else {
-                console.error(`Datetime constraint ${constraint} must be either odrl:gt or odrl:lt as operator`)
+                log({level: "warn", message: `Datetime constraint ${constraint} must be either odrl:gt or odrl:lt as operator`})
                 return { status: false, left, op, right};
             }
 
         default:
-            console.error(`Failing due to unknown option: ${left}.`)
+            log({level: "error", message: `Failing due to unknown option: ${left}`})
             // catch unknown options as failure?
             return { status: false, left, op, right};
     }

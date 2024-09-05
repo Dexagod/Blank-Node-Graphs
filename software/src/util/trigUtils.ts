@@ -10,8 +10,10 @@ export async function serializeTrigFromStore (store: Store): Promise<string> {
         const writer = new Writer({ format: 'application/trig' })
         writer.addQuads(store.getQuads(null, null, null, null))
         writer.end((error, result) => {
-            if (error || !result) {
+            if (error) {
                 throw new Error('Could not serialize package string correctly')
+            } else if (!result) {
+                resolve('')
             }
             resolve(indentTrigString(result as string))
         })

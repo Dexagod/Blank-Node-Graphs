@@ -112,7 +112,6 @@ export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad
 
     const defaultStrategy = (graphName: Quad_Graph) => { 
         const bn = blankNode();
-        console.log(`default strategy renaming ${graphName.termType} to ${bn.value}`)
         return  { graphName: bn } 
     }
     let newDefaultGraph: undefined | NamedNode | BlankNode;

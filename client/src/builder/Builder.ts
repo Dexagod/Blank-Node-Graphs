@@ -17,7 +17,7 @@ import {
     SignatureInfo, 
     SignatureOptions
 } from "../../../software/src/"
-
+import { log } from "winston";
 import { getResourceAsStore } from "@dexagod/rdf-retrieval";
 
 import { DataFactory } from "../../../software/src";
@@ -118,7 +118,7 @@ export class Builder {
 
     loadRDF(url: string): Builder {
         if (!this.session) { 
-            console.error('No session found, starting new session!')
+            log({ level: "warn", message: 'No session found, starting new session!' })
             this.startSession()
             return this.loadRDF(url)
         }
@@ -135,23 +135,23 @@ export class Builder {
     }
 
     sign(): Builder {
-        if (!this.session) { console.error('No session found, nothing to sign!'); return this; }
+        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to sign!' }); return this; }
 
         const signRDFContents = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
-            if (!focus) { console.error('Cannot create signature of undefined focus node!'); return store; }
+            if (!focus) { log({ level: "warn", message: 'Cannot create signature of undefined focus node!'}); return store; }
             const containmentType = checkContainmentType(store.getStore(), focus)
             if (containmentType === ContainmentType.Dataset) {
                 const quads = await tryCreateDatasetSignature(store.getStore(), focus as Quad_Object, this.signatureOptions)
                 if (quads) { store.addQuads(quads) }
-                else { console.error(`Signature creation failed for ${focus}.`); return store; }
+                else { log({ level: "warn", message: `Signature creation failed for ${focus}.`}); return store; }
             }
             else if (containmentType === ContainmentType.Graph) {
                 const quads = await tryCreateGraphSignature(store.getStore(), focus as Quad_Graph, this.signatureOptions)
                 if (quads) { store.addQuads(quads) }
-                else { console.error(`Signature creation failed for ${focus}.`); return store; }
+                else { log({ level: "warn", message: `Signature creation failed for ${focus}.`}); return store; }
             }
-            else { console.error(`Cannot create signature of ${focus}. Target is neither a dataset nor a graph!`); return store; }
+            else { log({ level: "warn", message: `Cannot create signature of ${focus}. Target is neither a dataset nor a graph!`}); return store; }
             return store
         }
         this.session.addAsyncTask(signRDFContents)
@@ -159,7 +159,7 @@ export class Builder {
     }
 
     signPredicates(predicates: string[], canonicalize = false): Builder {
-        if (!this.session) { console.error('No session found, nothing to sign!'); return this; }
+        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to sign!'}); return this; }
 
         const signRDFPredicates = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const signatureWaitList: Promise<Quad[] | undefined>[] = []
@@ -188,7 +188,7 @@ export class Builder {
 
     signExternal(url: string, canonicalize = false): Builder {
         if (!this.session) { 
-            console.error('No session found, starting new session!')
+            log({ level: "warn", message: 'No session found, starting new session!'})
             this.startSession()
             return this.loadRDF(url)
         }
@@ -211,11 +211,11 @@ export class Builder {
         let {duration, purpose, assigner, assignee} = options
         if (!duration) duration = "P7D"
 
-        if (!this.session) { console.error('No session found, nothing to set policy over!'); return this; }
+        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to set policy over!'}); return this; }
 
         const createPolicy = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
-            if (!focus) { console.error('Cannot create signature of undefined focus node!'); return store; }
+            if (!focus) { log({ level: "warn", message: 'Cannot create signature of undefined focus node!'}); return store; }
             const pol = createSimplePolicy({
                 target: focus as Quad_Object, 
                 duration: duration, 
@@ -233,13 +233,13 @@ export class Builder {
     }
 
     provenance(options?: { origin?: string }) {
-        if (!this.session) { console.error('No session found, nothing to add provenance over!'); return this; }
+        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to add provenance over!'}); return this; }
         
         const origin = options && options.origin
 
         const addProvenance = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
-            if (!focus) { console.error('Cannot create signature of undefined focus node!'); return store; }
+            if (!focus) { log({ level: "warn", message: 'Cannot create signature of undefined focus node!'}); return store; }
             const issuer = this.signatureOptions.issuer as NamedNode;
             const provenance = await createProvenanceTriples({
                 origin: origin ? namedNode(origin) : undefined,
@@ -256,7 +256,7 @@ export class Builder {
     }
 
     dataset() {
-        if (!this.session) { console.error('No session found, cannot generate dataset!'); return this; }
+        if (!this.session) { log({ level: "warn", message: 'No session found, cannot generate dataset!'}); return this; }
 
         const createDataset = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const dataset = createDatasetQuads(store.getStore(), store.getAddedGraphs() as Quad_Graph[])
@@ -319,20 +319,21 @@ function promiseWithTimeout<T>(
 async function tryCreateSignature(promise: Promise<SignatureInfo>, errorMessage: string, target?: string): Promise<Quad[] | undefined> {
     return new Promise<Quad[] | undefined>(async (resolve, reject) => {
         try {
-            const signatureInfo = await promiseWithTimeout(promise, 5000, new Error(errorMessage))
+            // todo:: this timeout makes it so that the whole system hangs when the signature is fulfilled
+            const signatureInfo = await promiseWithTimeout(promise, 2000, new Error(errorMessage))
             const signatureTriples = createSignatureTriples(signatureInfo).triples
             const graph = blankNode();
-            console.log(`creating signature graph with graph uri ${graph.value}`)
+            log({ level: "verbose", message: `creating signature graph with graph uri ${graph.value}`})
             resolve(signatureTriples.map(t => quad(t.subject, t.predicate, t.object, graph)))
         } catch (e) {
-            console.error(e)
+            log({ level: "error", message: (e as Error).message })
             resolve(undefined)
         }
     })
 }
 
 async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, signatureOptions: SignatureOptions): Promise<Quad[] | undefined> {
-    console.log('Generating signature for local dataset:', datasetId.value)
+    log({ level: "verbose", message: `Generating signature for local dataset: ${datasetId.value}` })
     return await tryCreateSignature(
         createRDFDatasetSignature(store, datasetId, signatureOptions),
         `Signature generation for dataset ${datasetId} timed out.`,
@@ -341,7 +342,7 @@ async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, s
 }
 
 async function tryCreateGraphSignature(store: Store, graphId: Quad_Graph, signatureOptions: SignatureOptions): Promise<Quad[] | undefined> {
-    console.log('Generating signature for local graph:', graphId.value)
+    log({ level: "verbose", message: `Generating signature for local graph: ${graphId.value}`})
     return await tryCreateSignature(
         createRDFGraphSignature(store, graphId, signatureOptions),
         `Signature generation for dataset ${graphId} timed out.`,
@@ -350,7 +351,7 @@ async function tryCreateGraphSignature(store: Store, graphId: Quad_Graph, signat
 }
 
 async function tryCreateRemoteRDFResourceSignature(uri: string, signatureOptions: SignatureOptions): Promise<Quad[] | undefined> {
-    console.log('Generating signature for remote RDF resource:', uri)
+    log({ level: "verbose", message: `Generating signature for remote RDF resource: ${uri}`})
     return tryCreateSignature(
         createRemoteRDFSignature(uri, signatureOptions),
         `Signature generation for ${uri} timed out.`,
@@ -360,14 +361,14 @@ async function tryCreateRemoteRDFResourceSignature(uri: string, signatureOptions
 
 async function tryCreateRemoteResourceSignature(targetResource: string, signatureOptions: SignatureOptions): Promise<Quad[] | undefined> {
     try {
-        console.log('Generating signature for remote resource:', targetResource)
+        log({ level: "verbose", message: `Generating signature for remote resource: ${targetResource}` })
         return tryCreateSignature(
             createRemoteResourceSignature(targetResource, signatureOptions),
             `Signature generation for ${targetResource} timed out.`,
             targetResource
         )
     } catch (e) {
-        console.error((e as Error).message)
+        log({ level: "error", message: (e as Error).message })
         return undefined
     }
 }

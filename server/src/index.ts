@@ -10,6 +10,7 @@ import { webcrypto } from "crypto"
 import { program } from "commander"
 
 import { DataFactory } from "../../software/src";
+import { log } from "winston";
 const { namedNode, blankNode, literal, quad, triple, defaultGraph } = DataFactory
 
 const DPV = "https://w3id.org/dpv#";
@@ -54,7 +55,7 @@ async function startProxy(port: number, signaturePredicates: string[], canonical
         //modify the url in any way you want
         try {
             var requestUrl = req.query.url as string | undefined;
-            console.log("retrieving", requestUrl)
+            log({level: "verbose", message: `Retrieving URL ${requestUrl}`})
             if(!requestUrl) return;
             
             if (await isRDFResource(requestUrl)){
@@ -65,14 +66,14 @@ async function startProxy(port: number, signaturePredicates: string[], canonical
                 request(requestUrl).pipe(res);
             }  
         } catch (e) {
-            console.error(e)
+            log({level: "error", message: (e as Error).message })
             res.status(500)
             res.send(`something went wrong: \n${(e as Error).message}`)
         }
     });
 
     app.listen(port, () => {
-        console.log(`[server]: Server is running at http://localhost:${port}`);
+        log({level: "info", message: `[server]: Server is running at http://localhost:${port}`})
     });
 }
 
@@ -112,13 +113,11 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
 
     // function
     const resourceUrl = getTargetResourceURI(url)
-    console.log("processing", resourceUrl)
 
 	const store = await getResourceAsStore(resourceUrl) as Store;
 	renameGraph(store, defaultGraph())
 	
     const signatureWaitList: Promise<any>[] = []
-    console.log(singPredicates)
 	for (let quad of store.getQuads(null, null, null, null)) {
 		if (singPredicates.includes(quad.predicate.value)) {
             const targetResource = getTargetResourceURI(quad.object.value)
@@ -203,10 +202,10 @@ async function tryCreateSignature(store: Store, promise: Promise<SignatureInfo>,
             const signatureInfo = await promiseWithTimeout(promise, 5000, new Error(errorMessage))
             const signatureTriples = createSignatureTriples(signatureInfo)
             const signatureGraph = addSignatureGraphToStore(store, signatureTriples.triples).graph 
-            console.log('Generated signature for', target)
+            log({level: "verbose", message: `Generated signature for ${target}`})
             resolve(signatureGraph)
         } catch (e) {
-            console.error(e)
+            log({level: "error", message: (e as Error).message })
             resolve(undefined)
         }
     })
@@ -214,7 +213,7 @@ async function tryCreateSignature(store: Store, promise: Promise<SignatureInfo>,
 
 
 async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
-    console.log('Generating signature for local dataset:', datasetId.value)
+    log({level: "verbose", message: `Generating signature for local dataset ${datasetId.value}`})
     return await tryCreateSignature(
         store, 
         createRDFDatasetSignature(store, datasetId, signatureOptions),
@@ -225,7 +224,7 @@ async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, s
 
 
 async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
-    console.log('Generating signature for remote RDF resource:', uri)
+    log({level: "verbose", message: `Generating signature for remote RDF resource ${uri}`})
     return tryCreateSignature(
         store, 
         createRemoteRDFSignature(uri, signatureOptions),
@@ -238,7 +237,7 @@ async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, si
 
 async function tryCreateRemoteResourceSignature(store: Store, targetResource: string, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
     try {
-        console.log('Generating signature for remote resource:', targetResource)
+        log({level: "verbose", message: `Generating signature for remote resource ${targetResource}`})
         return tryCreateSignature(
             store, 
             createRemoteResourceSignature(targetResource, signatureOptions),
@@ -246,7 +245,7 @@ async function tryCreateRemoteResourceSignature(store: Store, targetResource: st
             targetResource
         )
     } catch (e) {
-        console.error((e as Error).message)
+        log({level: "error", message: (e as Error).message })
         return undefined
     }
 }
