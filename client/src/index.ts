@@ -1,24 +1,8 @@
+import { createLogger, LogEntry } from "winston"
+import { Console } from "winston/lib/winston/transports"
 
+const logLevel = process.env.LOG_LEVEL
+const logger = createLogger({ level: logLevel || 'warn', transports: [ new (Console)() ]})
 
-export function processInputRDFDataset() {
-    
-    // verify signatures - output the results of each verification step
+export function log(entry: LogEntry) { logger.log(entry) }
 
-    // for all verified signatures, create a new graph
-
-
-    /** 
-     * 
-     * _:verificationGraph5191293 {
-     *      _:verification a :VerificationStatus;
-     *      _:verification hasVerifiedURI <URI1>;
-     *      _:verification hasVerifiedURI <URI2>;
-     *      _:verification hasVerifiedGraph _:g1;
-     *      _:verification hasVerifiedGraph _:g2;
-     * }
-     * _:verificationGraph5191293 :hasVerificationToken "opOdqmk20DMw9d92mW9d-dq1x1d0dD".
-     * 
-     * 
-     */
-
-}

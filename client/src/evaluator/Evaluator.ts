@@ -2,9 +2,10 @@ import { Quad, Store, Quad_Subject, Quad_Object, Quad_Graph, Term } from "n3";
 import { checkContainmentType, ContainmentType, generateVerificationTriplesFromVerificationResult, PackOntology, serializeTrigFromStore, VerificationOntology, verifyAllSignatures } from "../../../software/src/"
 import { XSD, RDF, ODRL } from "@inrupt/vocab-common-rdf";
 import { evaluateConstraintCompliance, PURPOSE } from "./PolicyEvaluator";
-import { log } from "winston"
 
 import { DataFactory } from "../../../software/src";
+import { log } from "..";
+
 const { namedNode, blankNode, literal, quad, defaultGraph } = DataFactory
 
 const LOCALONTOLOGYNAMESPACE = "https://example.org/ns/local/"
@@ -91,11 +92,9 @@ export class Evaluator {
     
     session: Session | undefined;
     token: string;
-    verbose: boolean;
     
-    constructor(token: string, verbose?: boolean) {
+    constructor(token: string) {
         this.token = token;
-        this.verbose = !!verbose;
     }    
 
     startSession() {

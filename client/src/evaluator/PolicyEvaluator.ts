@@ -1,8 +1,8 @@
 import { Quad_Subject, Store } from "n3";
 import { XSD, RDF, ODRL } from "@inrupt/vocab-common-rdf";
+import { log } from "..";
 
 import { DataFactory, parseTrigToStore, serializeTrigFromStore, unpackRDFList } from "../../../software/src";
-import { log } from "winston";
 const { namedNode, blankNode, literal, quad } = DataFactory
 export const PURPOSE = "https://w3id.org/oac#Purpose"
 

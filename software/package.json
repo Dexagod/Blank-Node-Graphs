@@ -20,7 +20,8 @@
     "n3": "^1.20.4",
     "rdf-js": "^4.0.2",
     "uuid": "^10.0.0",
-    "webcrypto": "^0.1.1"
+    "webcrypto": "^0.1.1",
+    "winston": "^3.14.2"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.24.7",

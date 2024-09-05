@@ -17,10 +17,11 @@ import {
     SignatureInfo, 
     SignatureOptions
 } from "../../../software/src/"
-import { log } from "winston";
+import { createLogger } from "winston";
 import { getResourceAsStore } from "@dexagod/rdf-retrieval";
 
 import { DataFactory } from "../../../software/src";
+import { log } from "../";
 const { namedNode, blankNode, literal, quad, triple } = DataFactory
 
 const DPV = "https://w3id.org/dpv#";

@@ -8,10 +8,16 @@ import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto"
 
 import { program } from "commander"
+import { createLogger, LogEntry } from "winston";
+import { Console } from "winston/lib/winston/transports"
 
 import { DataFactory } from "../../software/src";
-import { log } from "winston";
 const { namedNode, blankNode, literal, quad, triple, defaultGraph } = DataFactory
+
+const logLevel = process.env.LOG_LEVEL
+const logger = createLogger({ level: logLevel || 'warn', transports: [ new (Console)() ]})
+
+export function log(entry: LogEntry) { logger.log(entry) }
 
 const DPV = "https://w3id.org/dpv#";
 
