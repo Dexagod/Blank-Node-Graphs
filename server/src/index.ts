@@ -157,7 +157,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
     // Create provenance over this content dataset 
 	const provenance = await createProvenanceTriples({
         origin: namedNode(resourceUrl),
-        issuer: issuer,
+        issuer: signatureOptions.issuer as NamedNode,
         target: datasetId
     })
     const provenanceGraph = addProvenanceGraphToStore(store, provenance.triples).graph
