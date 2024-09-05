@@ -41,18 +41,44 @@ program.command('setup')
   .option('-p, --port <number>', 'port number to host proxy')
   .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
   .option('-s, --signature-predicates [predicates...]')
-  .action((options) => {
+  .option('--public-key <url>, "Public key to add as signature verification method (note that we only allow keys generated usign @jeswr/rdf-sign)')
+  .option('--private-key <url>, "Private key to create signatures (note that we only allow keys generated usign @jeswr/rdf-sign)')
+  .option('--issuer <url>, "Issuer for signatures, policies and metadata')
+  .action(async (options) => {
     let {port, canonicalizeRemoteResources, signaturePredicates} = options
     
     port = port || 8080
     signaturePredicates = signaturePredicates || []
-    startProxy(port, signaturePredicates, canonicalizeRemoteResources)
+
+    // Fix key stuff here because of async requirement
+    const publicKeyResource = options.publicKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
+    const privateKeyResource = options.privateKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
+
+    // Testing key retrieval for myself
+    // const publicKeyText = await (await fetch(publicKeyResource)).text()
+    const privateKeyJSON = await (await fetch(privateKeyResource)).json()
+
+    const issuer = options.issuer 
+        ? namedNode(options.issuer)
+        : namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
+
+    // const publicKey = await importKey(publicKeyText)
+    const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
+
+    const signatureOptions: SignatureOptions = {
+        issuer,
+        privateKey, 
+        verificationMethod: publicKeyResource
+    }
+
+
+    startProxy(port, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
   });
 
 
 program.parse(process.argv);
 
-async function startProxy(port: number, signaturePredicates: string[], canonicalizeRemoteResources: boolean) {
+async function startProxy(port: number, signaturePredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
 
     const app = express();
 
@@ -65,7 +91,7 @@ async function startProxy(port: number, signaturePredicates: string[], canonical
             if(!requestUrl) return;
             
             if (await isRDFResource(requestUrl)){
-                const updatedContent = await processRDFResource(requestUrl, signaturePredicates, canonicalizeRemoteResources)
+                const updatedContent = await processRDFResource(requestUrl, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
                 res.setHeader('Content-Type', 'application/trig')
                 res.send(updatedContent)
             } else {
@@ -95,26 +121,7 @@ async function generateDefaultPolicy(target: Quad_Object) {
     })
 }
 
-async function processRDFResource(url: string, singPredicates: string[], canonicalizeRemoteResources: boolean) {
-
-    // Fix key stuff here because of async requirement
-    const publicKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
-    const privateKeyResource = "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
-
-    // Testing key retrieval for myself
-    // const publicKeyText = await (await fetch(publicKeyResource)).text()
-    const privateKeyJSON = await (await fetch(privateKeyResource)).json()
-
-    const issuer = namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
-
-    // const publicKey = await importKey(publicKeyText)
-    const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
-
-    const signatureOptions: SignatureOptions = {
-        issuer,
-        privateKey, 
-        verificationMethod: publicKeyResource
-    }
+async function processRDFResource(url: string, singPredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
 
 
     // function
