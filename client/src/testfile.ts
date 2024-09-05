@@ -66,13 +66,13 @@ async function test() {
 
 `   )
 
-    const evaluator = new Evaluator("EVALUATOR_TRUST_TOKEN")
+    const evaluator = new Evaluator()
     
     const trigString = await evaluator.startSession()
         .loadRDF(store.getQuads(null, null, null, null))
-        // .evaluateSignatures({trustedIssuers: ['https://pod.rubendedecker.be/profile/card#me']})
-        // .evaluatePolicies({ purpose: DPV+"ServicePersonalisation" })
-        .evaluateProvenance({ retrievedBy: ['https://pod.rubendedecssker.be/profile/card#me']})
+        .evaluateSignatures({trustedIssuers: ['https://pod.rubendedecker.be/profile/card#me']})
+        .evaluatePolicies({ purpose: DPV+"ServicePersonalisation" })
+        .evaluateProvenance({ retrievedBy: ['https://pod.rubendedecker.be/profile/card#me']})
         .commitToString()
 
     // const result2 = await serializeTrigFromStore(evaluatorStore)
