@@ -80,6 +80,18 @@ class Session {
             graphs = newGraphs;
         }
 
+        // for (let quad of store.getQuads(null, namedNode(RDF.type), namedNode(PackOntology.Dataset), null)) {
+        //     if (!graphs.map(g =>g.value).includes(quad.graph.value)) {
+        //         const newGraphID = blankNode()
+        //         // create new graph with type and includes predicates
+        //         const newGraphQuads = [
+
+        //         ]
+        //         // push new graph to be included as well!
+        //         graphs.push()
+        //     }
+        // }
+
         const newStore = new Store()
         for (let graphTerm of graphs) {
             newStore.addQuads(store.getQuads(null, null, null, graphTerm))
@@ -156,6 +168,11 @@ export class Evaluator {
 
                 if (type === ContainmentType.Dataset) {
                     graphs = store.getQuads(target, PackOntology.contains, null, null).map(q => q.object)
+                    // metadata for dataset
+                    // store.addQuad(target as Quad_Subject, namedNode(VerificationOntology.status), literal("true", XSD.boolean))
+                    // store.addQuad(target as Quad_Subject, namedNode(VerificationOntology.issuer), result.issuer)
+                    // store.addQuad(target as Quad_Subject, namedNode(VerificationOntology.trustedToken), literal(this.token))
+                    // store.addQuad(target as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.SignatureValidated))
                 } else if (type === ContainmentType.Graph) {
                     graphs = [target]
                 } else { // target is a single URI (e.g. trusted image)
@@ -214,6 +231,8 @@ export class Evaluator {
             for (let term of complyingGraphs) {
                 const containmentType = await checkContainmentType(store, term as Term)
                 if (containmentType === ContainmentType.Dataset) {
+                    // Also add the dataset
+                    // store.addQuad(term as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.PolicyValidated))
                     for (let graph of store.getQuads(term, namedNode(PackOntology.contains), null, null).map(q => q.object)) {
                         store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.PolicyValidated))
                     }
@@ -281,6 +300,7 @@ export class Evaluator {
                         }
                     } else if (predicate === PackOntology.origin) {
                         if (object && options?.retrievedFrom?.includes(object)) {
+                            // const datasetsContainingGraph = store.getQuads(null, namedNode(PackOntology.contains), graph, null).map(q => q.subject)
                             newGraphs.push(graph)
                         }
                     } else if (options?.retrievedAfter && predicate === PackOntology.timestamp) {
@@ -291,6 +311,18 @@ export class Evaluator {
                 }
                 graphs = newGraphs
             }
+            // todo:: undo this horror later
+            // const datasets = store.getSubjects(namedNode(PackOntology.contains), null, null)
+            // for (let dataset of datasets) {
+            //     let added = true;
+            //     for (let containedGraph of store.getObjects(dataset, namedNode(PackOntology.contains), null)) {
+            //         if (!graphs.map(g => g.value).includes(containedGraph.value)) { // some issues with array contains maybe?
+            //             added = false
+            //         }
+            //     }
+            //     if(added) store.addQuad(dataset as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.ProvenanceValidated))
+            // }
+
             for (let graph of graphs) {
                 store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.ProvenanceValidated))
             }
