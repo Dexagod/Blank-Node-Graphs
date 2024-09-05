@@ -93,8 +93,8 @@ export class Evaluator {
     session: Session | undefined;
     token: string;
     
-    constructor(token: string) {
-        this.token = token;
+    constructor(token?: string) {
+        this.token = token || "EVALUATOR_TRUST_TOKEN";
     }    
 
     startSession() {
@@ -272,7 +272,7 @@ export class Evaluator {
                         store.getQuads(graph, namedNode(predicate), null, null)
                             .map(q => q.object)
                     )
-                    
+
                     const object = matches[0]?.value
 
                     if (predicate === PackOntology.issuer) {
@@ -280,11 +280,11 @@ export class Evaluator {
                             newGraphs.push(graph)
                         }
                     } else if (predicate === PackOntology.origin) {
-                        if (object && options?.retrievedBy?.includes(object)) {
+                        if (object && options?.retrievedFrom?.includes(object)) {
                             newGraphs.push(graph)
                         }
                     } else if (options?.retrievedAfter && predicate === PackOntology.timestamp) {
-                        if (object && new Date(object) < new Date(options.retrievedAfter)) {
+                        if (object && new Date(object) > new Date(options.retrievedAfter)) {
                             newGraphs.push(graph)
                         }
                     }
