@@ -44,7 +44,6 @@ program
             })
         } 
         if(options.retrievedFrom || options.retrievedBy || options.retrievedAfter) {
-            console.log('adding')
             session = session.evaluateProvenance({
                 requireTrusted: options.trustedVerification,
                 retrievedFrom: options.retrievedFrom,
