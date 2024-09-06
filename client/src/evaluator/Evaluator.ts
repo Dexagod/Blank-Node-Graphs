@@ -160,6 +160,7 @@ export class Evaluator {
                     && options.trustedIssuers.length 
                     &&!options.trustedIssuers.includes(result.issuer.value)){
                         log({level: "warn", message: `Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target}`})
+                        continue;
                 }
                 const target = result.target
                 const type = await checkContainmentType(store, target)
@@ -189,7 +190,7 @@ export class Evaluator {
                     store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.SignatureValidated))
                 }
                 // Add triple indicating trust link for loose URLs
-                log({level: "info", message: `Verified signature of ${target.value}`})
+                log({level: "verbose", message: `Verified signature of ${target.value}`})
             }
             return store;
         })
