@@ -159,7 +159,7 @@ export class Evaluator {
                 if (options.trustedIssuers 
                     && options.trustedIssuers.length 
                     &&!options.trustedIssuers.includes(result.issuer.value)){
-                        log({level: "warn", message: `Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target}`})
+                        log({level: "warn", message: `Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target.value}`})
                         continue;
                 }
                 const target = result.target

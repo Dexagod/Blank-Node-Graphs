@@ -2,11 +2,13 @@ import { generateKeyPair, exportPrivateKey, importPrivateKey, exportKey, importK
 import { sign, webcrypto } from "crypto";
 import moment, { Moment } from "moment"
 import { addSignatureGraphToStore, createRemoteResourceSignature, createSignatureTriples } from "./signature/sign";
-import { DataFactory, Store } from "n3";
+import { Store } from "n3";
 import { verifyAllSignatures, verifySignature } from "./signature/verify";
 import { createRDFList } from "./util/util";
 import { serializeTrigFromStore } from "./util/trigUtils";
 import { createSimplePolicy } from "./example/policy";
+
+import { DataFactory } from "./";
 
 
 

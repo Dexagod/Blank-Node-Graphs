@@ -1,5 +1,6 @@
 import { createDatasetFromGraphsInStore, renameGraph } from "../../src/package/package";
-import { DataFactory, Store } from "n3";
+import { Store } from "n3";
+import { DataFactory } from "../../../software/src/";
 import { RDF } from "@inrupt/vocab-common-rdf";
 import { } from "jest"
 import { PackOntology } from "../../src";

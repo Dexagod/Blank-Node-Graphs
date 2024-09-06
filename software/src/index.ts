@@ -14,8 +14,8 @@ export * from "./signature/verify"
 export * from "./util/util"
 export * from "./util/signUtils"
 export * from "./util/trigUtils"
-
-export { DataFactory } from "n3"
+import { DataFactory } from "n3"
+export { DataFactory } 
 
 
 import { createLogger, LogEntry } from "winston"

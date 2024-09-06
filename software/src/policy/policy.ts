@@ -1,8 +1,12 @@
-import { DataFactory, Quad_Graph, Store, Triple } from "n3"
+import { Quad_Graph, Store, Triple } from "n3"
+
+// import { DataFactory } from "../index";
+import { DataFactory } from "n3";
+let bnCounter = 0
 
 const quad = DataFactory.quad;
 const namedNode = DataFactory.namedNode;
-const blankNode = DataFactory.blankNode;
+const blankNode = () => DataFactory.blankNode(`n3-p-${bnCounter+=1}}`);
 const defaultGraph = DataFactory.defaultGraph;
 const literal = DataFactory.literal;
 

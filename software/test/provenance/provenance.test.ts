@@ -1,7 +1,9 @@
-import { DataFactory, Store, Triple, Quad_Graph, Quad_Object } from "n3";
+import { Store, Triple, Quad_Graph, Quad_Object } from "n3";
 import { addProvenanceGraphToStore, createProvenanceTriples, ProvenanceInfo } from "../../src/provenance/provenance";
 import { PackOntology } from "../../src/util/util";
 import "jest-rdf";
+
+import { DataFactory } from "../../../software/src/";
 
 const { namedNode, blankNode, quad, triple } = DataFactory;
 

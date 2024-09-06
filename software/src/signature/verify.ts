@@ -2,11 +2,17 @@ import { getResourceAsQuadArray, getResourceAsStore } from "@dexagod/rdf-retriev
 import { importKey, signParams, verifyQuads } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto";
 import { SignatureInfo } from "./sign";
-import { DataFactory, Quad, Store, NamedNode, Quad_Object, Term } from "n3";
+import { Quad, Store, NamedNode, Quad_Object, Term } from "n3";
 import { checkContainmentType, ContainmentType, getDatasetGraphQuads, SignOntology, VerificationOntology } from "../util/util";
 import { RDF, XSD } from "@inrupt/vocab-common-rdf";
 
-const { namedNode, quad, blankNode, triple, literal } = DataFactory
+import { DataFactory } from "n3"
+
+let bnverifyCounter = 0
+
+const blankNode = () => DataFactory.blankNode(`n3-v-${bnverifyCounter+=1}}`);
+
+const { namedNode, quad, triple, literal } = DataFactory
 
 export type VerificationResult = {
     result: boolean,
@@ -107,6 +113,8 @@ async function verifyRDFContentSignature(quads: Quad[], info: SignatureInfo): Pr
     try {
         const publicKey = await getPublicKeyFromVerificationMethod(verificationMethod)
         const result = await verifyQuads(quads, proofValue, publicKey)
+        console.log()
+        console.log('results', result, info, "publickey", publicKey)
         return ({
             result,
             target: info.target,

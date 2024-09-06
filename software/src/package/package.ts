@@ -14,7 +14,7 @@ const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactor
 export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_Graph[], metadataGraph?: Quad_Graph) {
 
     const datasetSubject = blankNode()
-    const containingGraphTerm = metadataGraph ?  namedNode(metadataGraph.value) : defaultGraph()
+    const containingGraphTerm = metadataGraph ?  metadataGraph : defaultGraph()
     const datasetQuads = [
         quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
     ]

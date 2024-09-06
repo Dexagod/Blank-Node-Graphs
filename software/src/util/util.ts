@@ -123,7 +123,7 @@ export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad
         const renamed = renameGraph(store, graphTerm, graphName)
         if (metadata) store.addQuads(metadata)
             
-        if (graphTerm === DataFactory.defaultGraph())
+        if (graphTerm.equals(DataFactory.defaultGraph()))
             newDefaultGraph = renamed.graph;
     }
 
