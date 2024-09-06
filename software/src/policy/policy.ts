@@ -6,7 +6,7 @@ let bnCounter = 0
 
 const quad = DataFactory.quad;
 const namedNode = DataFactory.namedNode;
-const blankNode = () => DataFactory.blankNode(`n3-p-${bnCounter+=1}}`);
+const blankNode = () => DataFactory.blankNode(`n3-p-${bnCounter+=1}`);
 const defaultGraph = DataFactory.defaultGraph;
 const literal = DataFactory.literal;
 

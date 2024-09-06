@@ -113,8 +113,6 @@ async function verifyRDFContentSignature(quads: Quad[], info: SignatureInfo): Pr
     try {
         const publicKey = await getPublicKeyFromVerificationMethod(verificationMethod)
         const result = await verifyQuads(quads, proofValue, publicKey)
-        console.log()
-        console.log('results', result, info, "publickey", publicKey)
         return ({
             result,
             target: info.target,
