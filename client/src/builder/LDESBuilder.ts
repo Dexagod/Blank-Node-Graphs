@@ -142,7 +142,13 @@ export class LDESBuilder {
         return (await this.session.commitToStore()).getStore()
     }
 
-    setMemberContents(quads: Quad[]): LDESBuilder {
+    /**
+     * 
+     * @param quads 
+     * @param contentDataset Wrap all member contents in a dataset that is focused for later added metadata. If this is false, signatures and policies will be added to the original defaultGraph!
+     * @returns 
+     */
+    setMemberContents(quads: Quad[], contentDataset?: boolean): LDESBuilder {
         if (!this.session) { 
             log({ level: "warn", message: 'No session found, starting new session!' })
             this.buildMember()
@@ -150,11 +156,19 @@ export class LDESBuilder {
         }
         const loadRDFResourceTask = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             let resStore = new Store(quads)
-            let renamedStore = renameAllGraphsInStore(resStore).store
-            const datasetStore = createDatasetFromGraphsInStore(renamedStore, renamedStore.getGraphs(null, null, null), blankNode())
-            // r.defaultGraph = the new renamed default graph blank node identifier
-            store.addQuads( datasetStore.store.getQuads(null, null, null, null), datasetStore.id  )
-            return store;
+            let renamedStore = renameAllGraphsInStore(resStore)
+            if (contentDataset) {
+                const datasetStore = createDatasetFromGraphsInStore(renamedStore.store, renamedStore.store.getGraphs(null, null, null), blankNode())
+                store.addQuads( datasetStore.store.getQuads(null, null, null, null), datasetStore.id  )
+                return store;
+            } else {
+                // Focus old default graph if existed, or pick a random one if not.
+                const focusGraph = renamedStore.defaultGraph || renamedStore.store.getGraphs(null, null, null)[0]
+                store.addQuads( renamedStore.store.getQuads(null, null, null, null), focusGraph )
+                return store;
+
+            }
+            
         }
         this.session.addAsyncTask(loadRDFResourceTask)
         return this
@@ -251,9 +265,9 @@ export class LDESBuilder {
         return this
     }
 
-    async commitPage() {
+    async commitPage(options?: {createSignatures?: boolean}) {
         const memberStores: Store[] = (await Promise.all(this.members)).map(focusStore => focusStore.getStore())
-        const {view, store, url}  = await this.buildLDESPage(memberStores, this.previousView)
+        const {view, store, url}  = await this.buildLDESPage(memberStores, this.previousView, options && options.createSignatures)
         this.previousView = view;
         
         // flush members list
@@ -266,7 +280,7 @@ export class LDESBuilder {
 
 
 
-    async buildLDESPage(members: Store[], previousView?: Quad_Object): Promise<{ view: NamedNode, store: Store, url: string}> {
+    async buildLDESPage(members: Store[], previousView?: Quad_Object, createSignatures?: boolean): Promise<{ view: NamedNode, store: Store, url: string}> {
         const pageURL = `${this.baseURI}${this.pagePrefix}${this.LDEScounter}.trig`;
         const view = namedNode(`${pageURL}#view`);
         this.LDEScounter += 1;
@@ -298,10 +312,12 @@ export class LDESBuilder {
             const updatedStore = createdDataset.store
             const datasetId = createdDataset.id
 
-            // Add LDES maintainer signature
-            const signatureInfo = await createRDFDatasetSignature(updatedStore, datasetId, this.signatureOptions)
-            const signatureTriples = createSignatureTriples(signatureInfo).triples
-            updatedStore.addQuads(signatureTriples)
+            if (createSignatures) {
+                // Add LDES maintainer signature
+                const signatureInfo = await createRDFDatasetSignature(updatedStore, datasetId, this.signatureOptions)
+                const signatureTriples = createSignatureTriples(signatureInfo).triples
+                updatedStore.addQuads(signatureTriples)
+            }
 
             // Add the new member + the member signature by the maintainer
             pageStore.addQuads(updatedStore.getQuads(null, null, null, null))

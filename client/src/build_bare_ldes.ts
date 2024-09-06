@@ -52,7 +52,7 @@ async function test() {
     }
 
 
-    const builder = await new LDESBuilder('https://pod.rubendedecker.be/scholar/ldes/', 'page', ldesSignOptions)
+    const builder = await new LDESBuilder('https://pod.rubendedecker.be/scholar/ldes2/', 'page', ldesSignOptions)
 
 
         // build a member Ruben
@@ -60,10 +60,10 @@ async function test() {
             .setMemberContents([ 
                 quad(namedNode('https://pod.rubendedecker.be/profile/card#me'), namedNode(FOAF.name), literal('Ruben'), blankNode('RubenProfileGraph')),
                 quad(namedNode('https://pod.rubendedecker.be/profile/card#me'), namedNode(FOAF.name), literal('Dexa'), blankNode('RubenSecondaryProfile')) 
-            ])
-            .setMemberProvenance({origin: "https://pod.rubendedecker.be/profile/card"})
-            .setMemberPolicy({duration: "P1D", purpose: [DPV+"ServiceProvision", DPV+"ServicePersonalisation"]})
-            .setMemberSignature(rubenSignOptions)
+            ], false)
+            // .setMemberProvenance({origin: "https://pod.rubendedecker.be/profile/card"})
+            // .setMemberPolicy({duration: "P1D", purpose: [DPV+"ServiceProvision", DPV+"ServicePersonalisation"]})
+            // .setMemberSignature(rubenSignOptions)
             .commitMember();
 
 
@@ -71,13 +71,13 @@ async function test() {
         builder.buildMember()
             .setMemberContents([ 
                 quad(namedNode('https://josd.github.io/card.ttl#me'), namedNode(FOAF.name), literal('Jos')),
-            ])
-            .setMemberProvenance({origin: "https://josd.github.io/card.ttl"})
-            .setMemberPolicy({duration: "P1M", purpose: [DPV+"ServiceProvision"]})
-            .setMemberSignature(josSignOptions)
+            ], false)
+            // .setMemberProvenance({origin: "https://josd.github.io/card.ttl"})
+            // .setMemberPolicy({duration: "P1M", purpose: [DPV+"ServiceProvision"]})
+            // .setMemberSignature(josSignOptions)
             .commitMember();
 
-        const page = await builder.commitPage({createSignatures: true})
+        const page = await builder.commitPage()
 
 
         console.log(``)
