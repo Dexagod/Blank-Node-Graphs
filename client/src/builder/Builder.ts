@@ -145,12 +145,12 @@ export class Builder {
             if (containmentType === ContainmentType.Dataset) {
                 const quads = await tryCreateDatasetSignature(store.getStore(), focus as Quad_Object, this.signatureOptions)
                 if (quads) { store.addQuads(quads) }
-                else { log({ level: "warn", message: `Signature creation failed for ${focus}.`}); return store; }
+                else { log({ level: "warn", message: `Signature creation failed for ${focus.value}.`}); return store; }
             }
             else if (containmentType === ContainmentType.Graph) {
                 const quads = await tryCreateGraphSignature(store.getStore(), focus as Quad_Graph, this.signatureOptions)
                 if (quads) { store.addQuads(quads) }
-                else { log({ level: "warn", message: `Signature creation failed for ${focus}.`}); return store; }
+                else { log({ level: "warn", message: `Signature creation failed for ${focus.value}.`}); return store; }
             }
             else { log({ level: "warn", message: `Cannot create signature of ${focus}. Target is neither a dataset nor a graph!`}); return store; }
             return store

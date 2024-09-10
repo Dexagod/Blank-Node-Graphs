@@ -79,7 +79,7 @@ async function test () {
     const s2 = new Store()
     s2.addQuads(p.triples)
     console.log()
-    console.log(await serializeTrigFromStore(s2))
+    console.log(await serializeTrigFromStore(s2, true))
 
 }
 

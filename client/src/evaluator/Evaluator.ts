@@ -1,5 +1,5 @@
-import { Quad, Store, Quad_Subject, Quad_Object, Quad_Graph, Term } from "n3";
-import { checkContainmentType, ContainmentType, generateVerificationTriplesFromVerificationResult, PackOntology, serializeTrigFromStore, VerificationOntology, verifyAllSignatures } from "../../../software/src/"
+import { Quad, Store, Quad_Subject, Quad_Object, Quad_Graph, Term, NamedNode, BlankNode } from "n3";
+import { checkContainmentType, ContainmentType, generateVerificationTriplesFromVerificationResult, getContainingDatasets, getPackageContentIds, PackOntology, serializeTrigFromStore, VerificationOntology, verifyAllSignatures } from "../../../software/src/"
 import { XSD, RDF, ODRL } from "@inrupt/vocab-common-rdf";
 import { evaluateConstraintCompliance, PURPOSE } from "./PolicyEvaluator";
 
@@ -43,7 +43,7 @@ class Session {
         if (flatten) {
             return await flattenTrig(finalStore)
         } else {
-            const str = await serializeTrigFromStore(finalStore)
+            const str = await serializeTrigFromStore(finalStore, true)
             return str;
         }
     }
@@ -168,7 +168,7 @@ export class Evaluator {
                 let graphs: Quad_Object[] = []
 
                 if (type === ContainmentType.Dataset) {
-                    graphs = store.getQuads(target, PackOntology.contains, null, null).map(q => q.object)
+                    graphs = getPackageContentIds(store, target)
                     // metadata for dataset
                     // store.addQuad(target as Quad_Subject, namedNode(VerificationOntology.status), literal("true", XSD.boolean))
                     // store.addQuad(target as Quad_Subject, namedNode(VerificationOntology.issuer), result.issuer)
@@ -234,7 +234,7 @@ export class Evaluator {
                 if (containmentType === ContainmentType.Dataset) {
                     // Also add the dataset
                     // store.addQuad(term as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.PolicyValidated))
-                    for (let graph of store.getQuads(term, namedNode(PackOntology.contains), null, null).map(q => q.object)) {
+                    for (let graph of getPackageContentIds(store, term)) {
                         store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.PolicyValidated))
                     }
                 } else {
@@ -270,6 +270,8 @@ export class Evaluator {
                 graphs = store.getGraphs(null, null, null)
             }
 
+            graphs = graphs.filter(g => !g.equals(defaultGraph()))
+
             // Iterate graphs untill all predicates are checked
             for (let predicate of requirePredicates) {
                 let newGraphs: Quad_Graph[] = []
@@ -277,14 +279,16 @@ export class Evaluator {
 
                     let matches: Quad_Object[] = []
 
-                    // match dataset
-                    const datasetsContainingGraph = store.getQuads(null, namedNode(PackOntology.contains), graph, null).map(q => q.subject)
-                    
+                    // todo: Need to fix sth in these equals checks cause that shit just does not work
+                    // match dataset, 
+                    const datasetsContainingGraph = graphs.map(g => getContainingDatasets(store, g as NamedNode | BlankNode)).flat().filter(onlyUnique)
+                    function onlyUnique(value: any, index:any , array: any[]) {
+                        return array.map(e => e.value).indexOf(value.value) === index;
+                    }
+
                     // todo: check if dataset here stays within verification bounds if dataset is not in trusted graph itself?
                     for (let dataset of datasetsContainingGraph) {
-                        matches = matches.concat(
-                            store.getQuads(dataset, namedNode(predicate), null, null).map(q => q.object)
-                        )
+                        matches = matches.concat(store.getObjects(dataset, namedNode(predicate), null))
                     }
 
                     // match graph
@@ -301,7 +305,6 @@ export class Evaluator {
                         }
                     } else if (predicate === PackOntology.origin) {
                         if (object && options?.retrievedFrom?.includes(object)) {
-                            // const datasetsContainingGraph = store.getQuads(null, namedNode(PackOntology.contains), graph, null).map(q => q.subject)
                             newGraphs.push(graph)
                         }
                     } else if (options?.retrievedAfter && predicate === PackOntology.timestamp) {
@@ -312,17 +315,6 @@ export class Evaluator {
                 }
                 graphs = newGraphs
             }
-            // todo:: undo this horror later
-            // const datasets = store.getSubjects(namedNode(PackOntology.contains), null, null)
-            // for (let dataset of datasets) {
-            //     let added = true;
-            //     for (let containedGraph of store.getObjects(dataset, namedNode(PackOntology.contains), null)) {
-            //         if (!graphs.map(g => g.value).includes(containedGraph.value)) { // some issues with array contains maybe?
-            //             added = false
-            //         }
-            //     }
-            //     if(added) store.addQuad(dataset as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.ProvenanceValidated))
-            // }
 
             for (let graph of graphs) {
                 store.addQuad(graph as Quad_Subject, namedNode(LocalOntology.hasTag), namedNode(LocalOntology.ProvenanceValidated))
@@ -352,5 +344,5 @@ async function flattenTrig(store: Store) {
             )
         }
     }
-    return await serializeTrigFromStore(store);
+    return await serializeTrigFromStore(store, true);
 }

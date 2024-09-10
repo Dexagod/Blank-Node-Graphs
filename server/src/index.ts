@@ -174,7 +174,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
     const metadataSignatureGraph = await tryCreateDatasetSignature(store, metadataDatasetId, signatureOptions)
 	
 	// Content manipuation is complete
-    const output = await serializeTrigFromStore(store)
+    const output = await serializeTrigFromStore(store, true)
 
     return output
 }

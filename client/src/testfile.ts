@@ -34,22 +34,22 @@ async function test() {
         .signPredicates(['http://xmlns.com/foaf/0.1/img'])
         // sign external resource
         .signExternal('https://www.rubendedecker.be')
-        // // wrap all generated graphs in a dataset
+        // wrap all generated graphs in a dataset
         .dataset()
-        // // add provenance to dataset
+        // add provenance to dataset
         .provenance(provenanceOptions)
-        // // add policy info to dataset
+        // add policy info to dataset
         .policy(policyOptions)
-        // // add siganture to dataset
+        // add siganture to dataset
         .sign()
-        // // wrap metadata in dataset
+        // wrap metadata in dataset
         .dataset()
-        // // sign metadata dataset
+        // sign metadata dataset
         .sign()
         // run all operations, and commit result to store
         .commit();
 
-    const result = await serializeTrigFromStore(store)
+    const result = await serializeTrigFromStore(store, true)
     
     console.log()
     console.log('OUTPUT')

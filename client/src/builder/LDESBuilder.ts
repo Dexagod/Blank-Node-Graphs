@@ -241,12 +241,12 @@ export class LDESBuilder {
             if (containmentType === ContainmentType.Dataset) {
                 const quads = await tryCreateDatasetSignature(store.getStore(), focus as Quad_Object, chosenSignatureOptions)
                 if (quads) { store.addQuads(quads) }
-                else { log({ level: "warn", message: `Signature creation failed for ${focus}.`}); return store; }
+                else { log({ level: "warn", message: `Signature creation failed for ${focus.value}.`}); return store; }
             }
             else if (containmentType === ContainmentType.Graph) {
                 const quads = await tryCreateGraphSignature(store.getStore(), focus as Quad_Graph, chosenSignatureOptions)
                 if (quads) { store.addQuads(quads) }
-                else { log({ level: "warn", message: `Signature creation failed for ${focus}.`}); return store; }
+                else { log({ level: "warn", message: `Signature creation failed for ${focus.value}.`}); return store; }
             }
             else { log({ level: "warn", message: `Cannot create signature of ${focus}. Target is neither a dataset nor a graph!`}); return store; }
             return store
@@ -273,7 +273,7 @@ export class LDESBuilder {
         // flush members list
         this.members = [];
         
-        return { trig: await serializeTrigFromStore(store), url: url }
+        return { trig: await serializeTrigFromStore(store, true), url: url }
     }
 
 

@@ -1,5 +1,5 @@
 import { BlankNode, DataFactory, NamedNode, Quad_Graph, Quad_Object, Store } from "n3";
-import { PackOntology } from "../util/util";
+import { createRDFList, PackOntology } from "../util/util";
 import { RDF } from "@inrupt/vocab-common-rdf";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
@@ -15,15 +15,21 @@ export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_G
 
     const datasetSubject = blankNode()
     const containingGraphTerm = metadataGraph ?  metadataGraph : defaultGraph()
-    const datasetQuads = [
+    let datasetQuads = [
         quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
     ]
-    for (let graphTerm of graphTerms) {
+
+    graphTerms.forEach(graphTerm => {
         if (graphTerm.equals(defaultGraph())) {
             throw new Error('Error creating dataset from graphs: cannot reference the default graph in local scope. Please rename the default graph first.')
         }
-        datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphTerm as Quad_Object, containingGraphTerm ))
-    }
+    })
+
+    const graphList = createRDFList(graphTerms as Quad_Object[], containingGraphTerm)
+    if (!graphList.subject) { throw new Error('Cannot create empty list for graph containment.') }
+     
+    datasetQuads = datasetQuads.concat(graphList.quads)
+    datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphList.subject as Quad_Object, containingGraphTerm ))
     store.addQuads(datasetQuads)
 
     return { store, graph: containingGraphTerm, id: datasetSubject }
@@ -70,15 +76,21 @@ export function createDatasetQuads( store: Store, graphTerms: Quad_Graph[], meta
 
     const datasetSubject = blankNode()
     const containingGraphTerm = metadataGraph ?  namedNode(metadataGraph.value) : defaultGraph()
-    const datasetQuads = [
+    let datasetQuads = [
         quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
     ]
-    for (let graphTerm of graphTerms) {
+
+    graphTerms.forEach(graphTerm => {
         if (graphTerm.equals(defaultGraph())) {
             throw new Error('Error creating dataset from graphs: cannot reference the default graph in local scope. Please rename the default graph first.')
         }
-        datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphTerm as Quad_Object, containingGraphTerm ))
-    }
+    })
+
+    const graphList = createRDFList(graphTerms as Quad_Object[], containingGraphTerm)
+    if (!graphList.subject) { throw new Error('Cannot create empty list for graph containment.') }
+     
+    datasetQuads = datasetQuads.concat(graphList.quads)
+    datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphList.subject as Quad_Object, containingGraphTerm ))
 
     return { quads: datasetQuads, graph: containingGraphTerm, id: datasetSubject }
 }

@@ -35,10 +35,7 @@ export async function serializeTrigFromStore (store: Store, beautifyList?: boole
                 resolve('')
             }
             let trigString = indentTrigString(result as string)
-            console.log('before', trigString)
-            console.log()
             if(beautifyList) {
-                console.log(listBases)
                 for (let base of listBases) {
                     const unpacked = unpackRDFList(listStore, base)
                     const regex = new RegExp((base.id || base.value)+"[^a-zA-Z0-9]")
