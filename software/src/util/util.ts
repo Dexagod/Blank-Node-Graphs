@@ -53,7 +53,7 @@ export enum ContainmentType {
 export function checkContainmentType(store: Store, term: Term): ContainmentType {
     if (store.getQuads(null, null, null, term).length !== 0) {
         return ContainmentType.Graph
-    } else if (store.getQuads(null, RDF.type, PackOntology.Dataset, null)) {
+    } else if (store.getQuads(term, RDF.type, PackOntology.Dataset, null).length) {
         return ContainmentType.Dataset
     }
     return ContainmentType.Other
@@ -68,7 +68,7 @@ export function getDatasetGraphQuads(store: Store, dataset: BlankNode | NamedNod
         throw new Error('Incorrect dataset reference passed for given store.')
     }
 
-    const graphIds = store.getQuads(dataset, PackOntology.contains, null, null).map(quad => quad.object)
+    const graphIds = getPackageContentIds(store, dataset)
     let quads: Quad[] = []
     for (let graphId of graphIds) {
         quads = quads.concat(store.getQuads(null, null, null, graphId))
@@ -100,8 +100,8 @@ export function unpackRDFList(store: Store, base: Quad_Subject, graph?: Quad_Gra
     graph = graph || null
     const first = store.getQuads(base, RDF.first, null, graph).map(q => q.object)
     const rest = store.getQuads(base, RDF.rest, null, graph).map(q => q.object)
-    if (first.length && first.length !== 1) { throw new Error(`Malformed list at base ${base}`) }
-    if (rest.length && rest.length !== 1) { throw new Error(`Malformed list at base ${base}`) }
+    if (first.length && first.length !== 1) { throw new Error(`Malformed list at first value for base ${base.value}`) }
+    if (rest.length && rest.length !== 1) { throw new Error(`Malformed list at rest value for base ${base.value}`) }
     if (rest[0].equals(namedNode(RDF.nil))) return [ first[0] ]
     else return [ first [0] ].concat(unpackRDFList(store, rest[0] as Quad_Subject, graph))
 }
@@ -128,4 +128,12 @@ export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad
     }
 
     return { store, defaultGraph: newDefaultGraph }
+}
+
+export function getPackageContentIds(store: Store, datasetId: Term, graph?: Quad_Graph) {
+    console.log('TEST', store.getQuads(null, namedNode(PackOntology.contains), null, null))
+    const list = store.getObjects(datasetId, namedNode(PackOntology.contains), graph || null)[0]
+    console.log('LIST', list, store.getObjects(datasetId, namedNode(PackOntology.contains), null))
+    const items = unpackRDFList(store, list as Quad_Subject, graph)
+    return items
 }
