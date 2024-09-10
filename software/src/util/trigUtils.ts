@@ -80,6 +80,6 @@ function serializeRDFList(items: Quad_Object[]) {
     for (let item of items) {
         str += " "+(item.id || item.value).toString()
     }
-    str += " )"
+    str += ` )\n`;
     return str
 }
