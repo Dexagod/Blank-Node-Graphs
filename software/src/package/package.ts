@@ -1,5 +1,5 @@
 import { BlankNode, DataFactory, NamedNode, Quad_Graph, Quad_Object, Store } from "n3";
-import { createRDFList, PackOntology } from "../util/util";
+import { BNGOntology, createRDFList, PackOntology } from "../util/util";
 import { RDF } from "@inrupt/vocab-common-rdf";
 
 const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactory;
@@ -16,7 +16,7 @@ export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_G
     const datasetSubject = blankNode()
     const containingGraphTerm = metadataGraph ?  metadataGraph : defaultGraph()
     let datasetQuads = [
-        quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
+        quad(datasetSubject, namedNode(RDF.type), namedNode(BNGOntology.Collection), containingGraphTerm)
     ]
 
     graphTerms.forEach(graphTerm => {
@@ -29,7 +29,7 @@ export function createDatasetFromGraphsInStore( store: Store, graphTerms: Quad_G
     if (!graphList.subject) { throw new Error('Cannot create empty list for graph containment.') }
      
     datasetQuads = datasetQuads.concat(graphList.quads)
-    datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphList.subject as Quad_Object, containingGraphTerm ))
+    datasetQuads.push(quad(datasetSubject, namedNode(BNGOntology.contains), graphList.subject as Quad_Object, containingGraphTerm ))
     store.addQuads(datasetQuads)
 
     return { store, graph: containingGraphTerm, id: datasetSubject }
@@ -77,7 +77,7 @@ export function createDatasetQuads( store: Store, graphTerms: Quad_Graph[], meta
     const datasetSubject = blankNode()
     const containingGraphTerm = metadataGraph ?  namedNode(metadataGraph.value) : defaultGraph()
     let datasetQuads = [
-        quad(datasetSubject, namedNode(RDF.type), namedNode(PackOntology.Dataset), containingGraphTerm)
+        quad(datasetSubject, namedNode(RDF.type), namedNode(BNGOntology.Collection), containingGraphTerm)
     ]
 
     graphTerms.forEach(graphTerm => {
@@ -90,7 +90,7 @@ export function createDatasetQuads( store: Store, graphTerms: Quad_Graph[], meta
     if (!graphList.subject) { throw new Error('Cannot create empty list for graph containment.') }
      
     datasetQuads = datasetQuads.concat(graphList.quads)
-    datasetQuads.push(quad(datasetSubject, namedNode(PackOntology.contains), graphList.subject as Quad_Object, containingGraphTerm ))
+    datasetQuads.push(quad(datasetSubject, namedNode(BNGOntology.contains), graphList.subject as Quad_Object, containingGraphTerm ))
 
     return { quads: datasetQuads, graph: containingGraphTerm, id: datasetSubject }
 }

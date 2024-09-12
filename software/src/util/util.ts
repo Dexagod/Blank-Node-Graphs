@@ -11,6 +11,12 @@ const { namedNode, blankNode, literal, quad, defaultGraph, triple } = DataFactor
 const SIGNATUREONTOLOGYNAMESPACE = 'https://example.org/ns/sign/'
 const PACKAGEONTOLOGYNAMESPACE= 'https://example.org/ns/pack/'
 const VERIFICATIONONTOLOGYNAMESPACE = 'https://example/org/ns/verify/'
+const BNGONTOLOGYNAMESPACE = 'https://example/org/ns/bng/'
+
+export const BNGOntology = {
+    Collection: BNGONTOLOGYNAMESPACE+"Collection",
+    contains: BNGONTOLOGYNAMESPACE+"contains",
+}
 
 export const SignOntology = {
     NAMESPACE: SIGNATUREONTOLOGYNAMESPACE,
@@ -32,8 +38,6 @@ export const PackOntology = {
     timestamp: PACKAGEONTOLOGYNAMESPACE+"timestamp",
     origin: PACKAGEONTOLOGYNAMESPACE+"origin",
     issuer: PACKAGEONTOLOGYNAMESPACE+"issuer",
-    Dataset: PACKAGEONTOLOGYNAMESPACE+"Dataset",
-    contains: PACKAGEONTOLOGYNAMESPACE+"contains",
 }
 
 export const VerificationOntology = {
@@ -54,7 +58,7 @@ export enum ContainmentType {
 export function checkContainmentType(store: Store, term: Term): ContainmentType {
     if (store.getQuads(null, null, null, term).length !== 0) {
         return ContainmentType.Graph
-    } else if (store.getQuads(term, RDF.type, PackOntology.Dataset, null).length) {
+    } else if (store.getQuads(term, RDF.type, BNGOntology.Collection, null).length) {
         return ContainmentType.Dataset
     }
     return ContainmentType.Other
@@ -65,7 +69,7 @@ export function generateUrnUuid() {
 }
 
 export function getDatasetGraphQuads(store: Store, dataset: BlankNode | NamedNode) {
-    if(!store.getQuads(dataset, RDF.type, PackOntology.Dataset, null).length) {
+    if(!store.getQuads(dataset, RDF.type, BNGOntology.Collection, null).length) {
         throw new Error('Incorrect dataset reference passed for given store.')
     }
 
