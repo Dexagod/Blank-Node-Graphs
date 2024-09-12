@@ -102,6 +102,13 @@ async function startProxy(port: number, signaturePredicates: string[], canonical
         }
     });
 
+    app.post('/', async function(req,res) { req.pipe(res); });
+    app.put('/', async function(req,res) { req.pipe(res); });
+    app.delete('/', async function(req,res) { req.pipe(res); });
+    app.patch('/', async function(req,res) { req.pipe(res); });
+    app.options('/', async function(req,res) { req.pipe(res); });
+    app.head('/', async function(req,res) { req.pipe(res); });
+
     app.listen(port, () => {
         log({level: "info", message: `[server]: Server is running at http://localhost:${port}`})
     });
