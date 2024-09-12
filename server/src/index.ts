@@ -1,10 +1,8 @@
 import express from "express"
-import http from "http"
 import request from "request"
-import { addPolicyGraphToStore, addProvenanceGraphToStore, addSignatureGraphToStore, createDatasetFromGraphsInStore, createProvenanceTriples, createRDFDatasetSignature, createRemoteRDFSignature, createRemoteResourceSignature, createSignatureTriples, createSimplePolicy, renameGraph, serializeTrigFromStore, SignatureInfo, SignatureOptions } from "../../software/src/"
-import { getResourceAsStore } from "@dexagod/rdf-retrieval";
-import { Quad_Object, Store, BlankNode, NamedNode, Quad_Graph } from "n3";
-import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
+import { createSimplePolicy, serializeTrigFromStore, SignatureOptions } from "../../software/src/"
+import { Quad_Object} from "n3";
+import { importPrivateKey } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto"
 
 import { Builder } from "../../client/src/"
