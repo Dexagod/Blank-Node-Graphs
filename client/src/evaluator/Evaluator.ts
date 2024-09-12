@@ -80,18 +80,6 @@ class Session {
             graphs = newGraphs;
         }
 
-        // for (let quad of store.getQuads(null, namedNode(RDF.type), namedNode(PackOntology.Dataset), null)) {
-        //     if (!graphs.map(g =>g.value).includes(quad.graph.value)) {
-        //         const newGraphID = blankNode()
-        //         // create new graph with type and includes predicates
-        //         const newGraphQuads = [
-
-        //         ]
-        //         // push new graph to be included as well!
-        //         graphs.push()
-        //     }
-        // }
-
         const newStore = new Store()
         for (let graphTerm of graphs) {
             newStore.addQuads(store.getQuads(null, null, null, graphTerm))
