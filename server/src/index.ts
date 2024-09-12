@@ -32,101 +32,89 @@ const acceptedRDFContentTypes = [
 	"application/rdf+xml",
 ]
 
-program
-  .name('rdf containment proxy')
-  .description('Setup a proxy server that provides RDF metadata on retrieval of RDF resources')
-  .version('0.1.0')
-  .option('-p, --port <number>', 'port number to host proxy')
-  .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
-  .option('-s, --signature-predicates [predicates...]')
-  .option('--public-key <url>, "Public key to add as signature verification method (note that we only allow keys generated usign @jeswr/rdf-sign)')
-  .option('--private-key <url>, "Private key to create signatures (note that we only allow keys generated usign @jeswr/rdf-sign)')
-  .option('--issuer <url>, "Issuer for signatures, policies and metadata')
-  .action(async (options) => {
-    let {port, canonicalizeRemoteResources, signaturePredicates} = options
+// program
+//   .name('rdf containment proxy')
+//   .description('Setup a proxy server that provides RDF metadata on retrieval of RDF resources')
+//   .version('0.1.0')
+//   .option('-p, --port <number>', 'port number to host proxy')
+//   .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
+//   .option('-s, --signature-predicates [predicates...]')
+//   .option('--public-key <url>, "Public key to add as signature verification method (note that we only allow keys generated usign @jeswr/rdf-sign)')
+//   .option('--private-key <url>, "Private key to create signatures (note that we only allow keys generated usign @jeswr/rdf-sign)')
+//   .option('--issuer <url>, "Issuer for signatures, policies and metadata')
+//   .action(async (options) => {
+//     let {port, canonicalizeRemoteResources, signaturePredicates} = options
     
-    port = port || 8080
-    signaturePredicates = signaturePredicates || []
+//     port = port || 8080
+//     signaturePredicates = signaturePredicates || []
 
-    // Fix key stuff here because of async requirement
-    const publicKeyResource = options.publicKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
-    const privateKeyResource = options.privateKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
+//     // Fix key stuff here because of async requirement
+//     const publicKeyResource = options.publicKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
+//     const privateKeyResource = options.privateKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
 
-    // Testing key retrieval for myself
-    // const publicKeyText = await (await fetch(publicKeyResource)).text()
-    const privateKeyJSON = await (await fetch(privateKeyResource)).json()
+//     // Testing key retrieval for myself
+//     // const publicKeyText = await (await fetch(publicKeyResource)).text()
+//     const privateKeyJSON = await (await fetch(privateKeyResource)).json()
 
-    const issuer = options.issuer 
-        ? namedNode(options.issuer)
-        : namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
+//     const issuer = options.issuer 
+//         ? namedNode(options.issuer)
+//         : namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
 
-    // const publicKey = await importKey(publicKeyText)
-    const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
+//     // const publicKey = await importKey(publicKeyText)
+//     const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
 
-    const signatureOptions: SignatureOptions = {
-        issuer,
-        privateKey, 
-        verificationMethod: publicKeyResource
-    }
-
-
-    startProxy(port, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
-  });
+//     const signatureOptions: SignatureOptions = {
+//         issuer,
+//         privateKey, 
+//         verificationMethod: publicKeyResource
+//     }
 
 
-program.parse(process.argv);
+//     startProxy(port, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
+//   });
 
-async function startProxy(port: number, signaturePredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
 
-    const app = express();
+// program.parse(process.argv);
 
-    /* your app config here */
-    app.get('/', async function(req,res) {
-        //modify the url in any way you want
-        try {
-            var requestUrl = req.query.url as string | undefined;
-            log({level: "verbose", message: `Retrieving URL ${requestUrl}`})
-            if(!requestUrl) return;
+// async function startProxy(port: number, signaturePredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
+
+//     const app = express();
+
+//     /* your app config here */
+//     app.get('/', async function(req,res) {
+//         //modify the url in any way you want
+//         try {
+//             var requestUrl = req.query.url as string | undefined;
+//             log({level: "verbose", message: `Retrieving URL ${requestUrl}`})
+//             if(!requestUrl) return;
             
-            if (await isRDFResource(requestUrl)){
-                const updatedContent = await processRDFResource(requestUrl, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
-                res.setHeader('Content-Type', 'application/trig')
-                res.send(updatedContent)
-            } else {
-                request(requestUrl).pipe(res);
-            }  
-        } catch (e) {
-            log({level: "error", message: (e as Error).message })
-            res.status(500)
-            res.send(`something went wrong: \n${(e as Error).message}`)
-        }
-    });
+//             if (await isRDFResource(requestUrl)){
+//                 const updatedContent = await processRDFResource(requestUrl, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
+//                 res.setHeader('Content-Type', 'application/trig')
+//                 res.send(updatedContent)
+//             } else {
+//                 request(requestUrl).pipe(res);
+//             }  
+//         } catch (e) {
+//             log({level: "error", message: (e as Error).message })
+//             res.status(500)
+//             res.send(`something went wrong: \n${(e as Error).message}`)
+//         }
+//     });
 
-    app.post('/', async function(req,res) { req.pipe(res); });
-    app.put('/', async function(req,res) { req.pipe(res); });
-    app.delete('/', async function(req,res) { req.pipe(res); });
-    app.patch('/', async function(req,res) { req.pipe(res); });
-    app.options('/', async function(req,res) { req.pipe(res); });
-    app.head('/', async function(req,res) { req.pipe(res); });
+//     app.post('/', async function(req,res) { req.pipe(res); });
+//     app.put('/', async function(req,res) { req.pipe(res); });
+//     app.delete('/', async function(req,res) { req.pipe(res); });
+//     app.patch('/', async function(req,res) { req.pipe(res); });
+//     app.options('/', async function(req,res) { req.pipe(res); });
+//     app.head('/', async function(req,res) { req.pipe(res); });
 
-    app.listen(port, () => {
-        log({level: "info", message: `[server]: Server is running at http://localhost:${port}`})
-    });
-}
+//     app.listen(port, () => {
+//         log({level: "info", message: `[server]: Server is running at http://localhost:${port}`})
+//     });
+// }
 
-async function generateDefaultPolicy(target: Quad_Object) {
-	return createSimplePolicy({
-        target, 
-        duration: "P7D", 
-        purpose: [
-            DPV+"NonCommercialPurpose", 
-            DPV+"ServicePersonalisation", 
-            DPV+"ServiceProvision"
-        ]
-    })
-}
-
-async function processRDFResource(url: string, singPredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
+export async function processRDFResource(url: string, singPredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
 
     const publicSignatureOptions = { 
         privateKey: signatureOptions.privateKey,
@@ -152,7 +140,7 @@ async function processRDFResource(url: string, singPredicates: string[], canonic
 }
 
 
-async function isRDFResource(url: string) {
+export async function isRDFResource(url: string) {
 	const head = await fetch(url, {method: "HEAD"})
     const contentTypeHeader = head.headers.get('Content-Type') || "text/turtle"
     const breakpoint = /;\s*charset=/
@@ -161,7 +149,7 @@ async function isRDFResource(url: string) {
 	return !!contentType && acceptedRDFContentTypes.includes(contentType)
 }
 
-function promiseWithTimeout<T>(
+export function promiseWithTimeout<T>(
     promise: Promise<T>,
     ms: number,
     timeoutError = new Error('Promise timed out')
