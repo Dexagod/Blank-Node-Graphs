@@ -117,7 +117,7 @@ export class Builder {
         return (await this.session.commitToStore()).getStore()
     }
 
-    loadRDF(url: string): Builder {
+    loadRDF(url: string, retainOriginal?: boolean): Builder {
         if (!this.session) { 
             log({ level: "warn", message: 'No session found, starting new session!' })
             this.startSession()
@@ -126,6 +126,11 @@ export class Builder {
         const loadRDFResourceTask = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             if (! await isRDFResource(url)) throw new Error('Cannot load non-rdf resources as RDf.')
             let resStore = await getResourceAsStore(url) as Store;
+            if (retainOriginal) {
+                // Add original quads in addition to renamed graphs
+                const originalStore = new Store(resStore.getQuads(null, null, null, null))
+                store.addQuads( originalStore.getQuads(null, null, null, null) )
+            }
             let r = renameAllGraphsInStore(resStore)
             // r.defaultGraph = the new renamed default graph blank node identifier
             store.addQuads( r.store.getQuads(null, null, null, null), r.defaultGraph  )
