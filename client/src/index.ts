@@ -1,3 +1,7 @@
+export * from "./builder/Builder"
+export * from "./builder/LDESBuilder"
+export * from "./evaluator/Evaluator"
+
 import { createLogger, LogEntry } from "winston"
 import { Console } from "winston/lib/winston/transports"
 
