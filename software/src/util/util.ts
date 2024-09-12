@@ -140,7 +140,7 @@ export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad
 }
 
 export function getPackageContentIds(store: Store, datasetId: Term, graph?: Quad_Graph) {
-    const list = store.getObjects(datasetId, namedNode(PackOntology.contains), graph || null)[0]
+    const list = store.getObjects(datasetId, namedNode(BNGOntology.contains), graph || null)[0]
     const items = unpackRDFList(store, list as Quad_Subject, graph)
     return items
 }
@@ -148,7 +148,7 @@ export function getPackageContentIds(store: Store, datasetId: Term, graph?: Quad
 export function getContainingDatasets(store: Store, itemID: NamedNode | BlankNode, graph?: Quad_Graph) {
     let subjects = store.getSubjects(namedNode(RDF.first), itemID, graph || null);
     const listStarts = subjects.map(s => findListStart(store, s as NamedNode | BlankNode, graph))
-    const datasets = listStarts.map(start => store.getSubjects(namedNode(PackOntology.contains), start, graph || null)).flat();
+    const datasets = listStarts.map(start => store.getSubjects(namedNode(BNGOntology.contains), start, graph || null)).flat();
 
     function onlyUnique(value: any, index:any , array: any[]) {
         return array.map(e => e.value).indexOf(value.value) === index;

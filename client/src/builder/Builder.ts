@@ -29,11 +29,13 @@ const DPV = "https://w3id.org/dpv#";
 class FocusRDFStore {
 
     private store: Store;
+    private untrackedStore: Store;
     private focusNode: Term | undefined;
     private addedGraphs: Term[];
 
-    constructor(store?: Store) {
+    constructor(store?: Store, untrackedStore?: Store) {
         this.store = store || new Store();
+        this.untrackedStore = store || new Store();
         this.focusNode = undefined;
         this.addedGraphs = [];
     }
@@ -49,6 +51,7 @@ class FocusRDFStore {
     setFocus(term: Term) { this.focusNode = term }
     
     getStore() { return this.store }
+    getUntrackedStore() { return this.untrackedStore }
     
     getAddedGraphs() { return [ ...new Set(this.addedGraphs)] }
 
@@ -56,6 +59,10 @@ class FocusRDFStore {
         this.focusNode = datasetId;
         this.addedGraphs = graph ? [ graph ] : []
     }
+
+    addUntrackedQuads(quads: Quad[]) {
+        this.untrackedStore.addQuads(quads)
+    } 
 }
 
 class Session {
@@ -114,7 +121,10 @@ export class Builder {
 
     async commit() {
         if (this.session === undefined) throw new Error('Cannot commit empty session.')
-        return (await this.session.commitToStore()).getStore()
+        const committedFocusStore = await this.session.commitToStore()
+        const combinedStore = committedFocusStore.getStore()
+        combinedStore.addQuads(committedFocusStore.getUntrackedStore().getQuads(null, null, null, null))
+        return combinedStore
     }
 
     loadRDF(url: string, retainOriginal?: boolean): Builder {
@@ -129,7 +139,7 @@ export class Builder {
             if (retainOriginal) {
                 // Add original quads in addition to renamed graphs
                 const originalStore = new Store(resStore.getQuads(null, null, null, null))
-                store.addQuads( originalStore.getQuads(null, null, null, null) )
+                store.addUntrackedQuads( originalStore.getQuads(null, null, null, null) )
             }
             let r = renameAllGraphsInStore(resStore)
             // r.defaultGraph = the new renamed default graph blank node identifier

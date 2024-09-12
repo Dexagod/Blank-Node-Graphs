@@ -7,7 +7,10 @@ import { Quad_Object, Store, BlankNode, NamedNode, Quad_Graph } from "n3";
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign";
 import { webcrypto } from "crypto"
 
+import { Builder } from "../../client/src/"
+
 import { program } from "commander"
+
 import { createLogger, LogEntry } from "winston";
 import { Console } from "winston/lib/winston/transports"
 
@@ -34,10 +37,7 @@ const acceptedRDFContentTypes = [
 program
   .name('rdf containment proxy')
   .description('Setup a proxy server that provides RDF metadata on retrieval of RDF resources')
-  .version('0.1.0');
-
-program.command('setup')
-  .description('Setup the proxy')
+  .version('0.1.0')
   .option('-p, --port <number>', 'port number to host proxy')
   .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
   .option('-s, --signature-predicates [predicates...]')
@@ -123,60 +123,27 @@ async function generateDefaultPolicy(target: Quad_Object) {
 
 async function processRDFResource(url: string, singPredicates: string[], canonicalizeRemoteResources: boolean, signatureOptions: SignatureOptions) {
 
-
-    // function
-    const resourceUrl = getTargetResourceURI(url)
-
-	const store = await getResourceAsStore(resourceUrl) as Store;
-	renameGraph(store, defaultGraph())
-	
-    const signatureWaitList: Promise<any>[] = []
-	for (let quad of store.getQuads(null, null, null, null)) {
-		if (singPredicates.includes(quad.predicate.value)) {
-            const targetResource = getTargetResourceURI(quad.object.value)
-            if (canonicalizeRemoteResources && await isRDFResource(targetResource)) {
-                const signatureGraph = tryCreateRemoteRDFResourceSignature(store, targetResource, signatureOptions)
-                signatureWaitList.push(signatureGraph)
-                // await signatureGraph
-            } else {
-                const signatureGraph = tryCreateRemoteResourceSignature(store, targetResource, signatureOptions)
-                signatureWaitList.push(signatureGraph)
-                // await signatureGraph
-            }   
-        }
+    const publicSignatureOptions = { 
+        privateKey: signatureOptions.privateKey,
+        issuer: signatureOptions.issuer.value, 
+        verificationMethod: signatureOptions.verificationMethod,
     }
-    await Promise.all(signatureWaitList)
-	
-    // Create dataset from all contents and signatures about content references
-	let contentGraphs = store.getGraphs(null, null, null)
-	let datasetId = createDatasetFromGraphsInStore(store, contentGraphs).id
+    const builder = new Builder(publicSignatureOptions);
 
-    // Create a default policy over this content dataset
-	const policy = await generateDefaultPolicy(datasetId)
-	const policyGraph = addPolicyGraphToStore(store, policy.triples).graph
-    // Create provenance over this content dataset 
-	const provenance = await createProvenanceTriples({
-        origin: namedNode(resourceUrl),
-        issuer: signatureOptions.issuer as NamedNode,
-        target: datasetId
-    })
-    const provenanceGraph = addProvenanceGraphToStore(store, provenance.triples).graph
+    const responseStore = await builder
+        .startSession()
+        .loadRDF(url, true)
+        .signPredicates(singPredicates, canonicalizeRemoteResources)
+        .dataset()
+        .sign()
+        .provenance({origin: url})
+        .policy({duration: "P7D", purpose: [DPV+"NonCommercialPurpose", DPV+"ServicePersonalisation", DPV+"ServiceProvision"]})
+        .dataset()
+        .sign()
+        .commit()
 
-    // Create a signature over this content dataset
-    const signatureGraph = await tryCreateDatasetSignature(store, datasetId, signatureOptions)
-    
-    // Wrap in metadata dataset
-    let metadataDatasetId: BlankNode;
-    if (signatureGraph) metadataDatasetId = createDatasetFromGraphsInStore(store, [policyGraph, provenanceGraph, signatureGraph]).id
-    else metadataDatasetId = createDatasetFromGraphsInStore(store, [policyGraph, provenanceGraph]).id
-
-    // Sign metadata dataset
-    const metadataSignatureGraph = await tryCreateDatasetSignature(store, metadataDatasetId, signatureOptions)
-	
-	// Content manipuation is complete
-    const output = await serializeTrigFromStore(store, true)
-
-    return output
+    const resultString = serializeTrigFromStore(responseStore, true)
+    return resultString
 }
 
 
@@ -187,10 +154,6 @@ async function isRDFResource(url: string) {
     const contentType = contentTypeHeader?.split(breakpoint)[0]
     const charset = contentTypeHeader?.split(breakpoint)[1]
 	return !!contentType && acceptedRDFContentTypes.includes(contentType)
-}
-
-function getTargetResourceURI(target: string) {
-    return target.split('#')[0].split('?')[0]
 }
 
 function promiseWithTimeout<T>(
@@ -207,58 +170,4 @@ function promiseWithTimeout<T>(
   
     // returns a race between timeout and the passed promise
     return Promise.race<T>([promise, timeout]);
-}
-
-async function tryCreateSignature(store: Store, promise: Promise<SignatureInfo>, errorMessage: string, target?: string): Promise<Quad_Graph | undefined> {
-    return new Promise<Quad_Graph | undefined>(async (resolve, reject) => {
-        try {
-            const signatureInfo = await promiseWithTimeout(promise, 5000, new Error(errorMessage))
-            const signatureTriples = createSignatureTriples(signatureInfo)
-            const signatureGraph = addSignatureGraphToStore(store, signatureTriples.triples).graph 
-            log({level: "verbose", message: `Generated signature for ${target}`})
-            resolve(signatureGraph)
-        } catch (e) {
-            log({level: "error", message: (e as Error).message })
-            resolve(undefined)
-        }
-    })
-}
-
-
-async function tryCreateDatasetSignature(store: Store, datasetId: Quad_Object, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
-    log({level: "verbose", message: `Generating signature for local dataset ${datasetId.value}`})
-    return await tryCreateSignature(
-        store, 
-        createRDFDatasetSignature(store, datasetId, signatureOptions),
-        `Signature generation for dataset ${datasetId} timed out.`,
-        datasetId.value
-    )
-}
-
-
-async function tryCreateRemoteRDFResourceSignature(store: Store, uri: string, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
-    log({level: "verbose", message: `Generating signature for remote RDF resource ${uri}`})
-    return tryCreateSignature(
-        store, 
-        createRemoteRDFSignature(uri, signatureOptions),
-        `Signature generation for ${uri} timed out.`,
-        uri
-    )
-}
-
-
-
-async function tryCreateRemoteResourceSignature(store: Store, targetResource: string, signatureOptions: SignatureOptions): Promise<Quad_Graph | undefined> {
-    try {
-        log({level: "verbose", message: `Generating signature for remote resource ${targetResource}`})
-        return tryCreateSignature(
-            store, 
-            createRemoteResourceSignature(targetResource, signatureOptions),
-            `Signature generation for ${targetResource} timed out.`,
-            targetResource
-        )
-    } catch (e) {
-        log({level: "error", message: (e as Error).message })
-        return undefined
-    }
 }
