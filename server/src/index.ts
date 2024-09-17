@@ -125,7 +125,7 @@ export async function processRDFResource(url: string, singPredicates: string[], 
 
     const responseStore = await builder
         .startSession()
-        .loadRDF(url, true)
+        .loadRDF(url, { retainOriginal: true })
         .signPredicates(singPredicates, canonicalizeRemoteResources)
         .dataset()
         .sign()

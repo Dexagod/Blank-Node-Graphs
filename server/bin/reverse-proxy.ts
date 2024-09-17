@@ -11,47 +11,47 @@ import { isRDFResource, log, processRDFResource } from "../src";
 const { namedNode, blankNode, literal, quad, triple, defaultGraph } = DataFactory
 
 program
-  .name('blank node graph reverse proxy')
-  .description('Setup a proxy server that provides RDF metadata on retrieval of RDF resources using blank node graphs')
-  .version('0.1.0')
-  .argument('<url>', 'local service to be proxied')
-  .option('-p, --port <number>', 'port number to host proxy')
-  .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
-  .option('-s, --signature-predicates [predicates...]')
-  .option('--public-key <url>, "Public key to add as signature verification method (note that we only allow keys generated usign @jeswr/rdf-sign)')
-  .option('--private-key <url>, "Private key to create signatures (note that we only allow keys generated usign @jeswr/rdf-sign)')
-  .option('--issuer <url>, "Issuer for signatures, policies and metadata')
-  .action(async (url, options) => {
-    console.log('params', url, options)
-    let {port, canonicalizeRemoteResources, signaturePredicates} = options
-    
-    port = port || 8081
-    signaturePredicates = signaturePredicates || []
+    .name('blank node graph reverse proxy')
+    .description('Setup a proxy server that provides RDF metadata on retrieval of RDF resources using blank node graphs')
+    .version('0.1.0')
+    .argument('<url>', 'local service to be proxied')
+    .option('-p, --port <number>', 'port number to host proxy')
+    .option('-c, --canonicalize-remote-resources', 'canonicalize remote RDF resources before signing (can be extremely slow!)', false)
+    .option('-s, --signature-predicates [predicates...]')
+    .option('--public-key <url>, "Public key to add as signature verification method (note that we only allow keys generated usign @jeswr/rdf-sign)')
+    .option('--private-key <url>, "Private key to create signatures (note that we only allow keys generated usign @jeswr/rdf-sign)')
+    .option('--issuer <url>, "Issuer for signatures, policies and metadata')
+    .action(async (url, options) => {
+        console.log('params', url, options)
+        let {port, canonicalizeRemoteResources, signaturePredicates} = options
+        
+        port = port || 8081
+        signaturePredicates = signaturePredicates || []
 
-    // Fix key stuff here because of async requirement
-    const publicKeyResource = options.publicKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
-    const privateKeyResource = options.privateKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
+        // Fix key stuff here because of async requirement
+        const publicKeyResource = options.publicKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_public"
+        const privateKeyResource = options.privateKey || "https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/test_private"
 
-    // Testing key retrieval for myself
-    // const publicKeyText = await (await fetch(publicKeyResource)).text()
-    const privateKeyJSON = await (await fetch(privateKeyResource)).json()
+        // Testing key retrieval for myself
+        // const publicKeyText = await (await fetch(publicKeyResource)).text()
+        const privateKeyJSON = await (await fetch(privateKeyResource)).json()
 
-    const issuer = options.issuer 
-        ? namedNode(options.issuer)
-        : namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
+        const issuer = options.issuer 
+            ? namedNode(options.issuer)
+            : namedNode("https://raw.githubusercontent.com/Dexagod/RDF-containment/main/keys/profile.ttl#me")
 
-    // const publicKey = await importKey(publicKeyText)
-    const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
+        // const publicKey = await importKey(publicKeyText)
+        const privateKey = await importPrivateKey(privateKeyJSON as webcrypto.JsonWebKey)
 
-    const signatureOptions: SignatureOptions = {
-        issuer,
-        privateKey, 
-        verificationMethod: publicKeyResource
-    }
+        const signatureOptions: SignatureOptions = {
+            issuer,
+            privateKey, 
+            verificationMethod: publicKeyResource
+        }
 
 
-    startProxy(url, port, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
-  });
+        startProxy(url, port, signaturePredicates, canonicalizeRemoteResources, signatureOptions)
+    });
 
 
 program.parse(process.argv);
