@@ -102,10 +102,10 @@ export type PublicSignatureOptions = {
 export class Builder {
     
     private session: undefined | Session;
-    private signatureOptions: SignatureOptions;
+    private signatureOptions?: SignatureOptions;
     
-    constructor(signatureOptions: PublicSignatureOptions) {
-        this.signatureOptions = {
+    constructor(signatureOptions?: PublicSignatureOptions) {
+        if (signatureOptions) this.signatureOptions = {
             privateKey: signatureOptions.privateKey,
             issuer: namedNode(signatureOptions.issuer),
             verificationMethod: signatureOptions.verificationMethod,
@@ -127,21 +127,26 @@ export class Builder {
         return combinedStore
     }
 
-    loadRDF(url: string, retainOriginal?: boolean): Builder {
+    loadRDF(url: string, 
+        options?: { 
+            retainOriginal?: boolean,
+            namePredicate?: string
+
+        }): Builder {
         if (!this.session) { 
-            log({ level: "warn", message: 'No session found, starting new session!' })
+            log({ level: "info", message: 'No session found, starting new session!' })
             this.startSession()
             return this.loadRDF(url)
         }
         const loadRDFResourceTask = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             if (! await isRDFResource(url)) throw new Error('Cannot load non-rdf resources as RDf.')
             let resStore = await getResourceAsStore(url) as Store;
-            if (retainOriginal) {
+            if (options?.retainOriginal) {
                 // Add original quads in addition to renamed graphs
                 const originalStore = new Store(resStore.getQuads(null, null, null, null))
                 store.addUntrackedQuads( originalStore.getQuads(null, null, null, null) )
             }
-            let r = renameAllGraphsInStore(resStore)
+            let r = renameAllGraphsInStore(resStore, undefined, { namePredicate: options?.namePredicate, origin: url })
             // r.defaultGraph = the new renamed default graph blank node identifier
             store.addQuads( r.store.getQuads(null, null, null, null), r.defaultGraph  )
             return store;
@@ -151,9 +156,11 @@ export class Builder {
     }
 
     sign(): Builder {
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to sign!' }); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to sign!' }); return this; }
+        if (!this.signatureOptions) { log({ level: "error", message: 'Cannot create signature, incomplete signatureOptions parameter!' }); return this; }
 
         const signRDFContents = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
+            if (!this.signatureOptions) throw new Error('This should not happen!')
             const focus = store.getFocus();
             if (!focus) { log({ level: "warn", message: 'Cannot create signature of undefined focus node!'}); return store; }
             const containmentType = checkContainmentType(store.getStore(), focus)
@@ -175,9 +182,11 @@ export class Builder {
     }
 
     signPredicates(predicates: string[], canonicalize = false): Builder {
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to sign!'}); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to sign!'}); return this; }
+        if (!this.signatureOptions) { log({ level: "error", message: 'Cannot create signature, incomplete signatureOptions parameter!' }); return this; }
 
         const signRDFPredicates = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
+            if (!this.signatureOptions) throw new Error('This should not happen!')
             const signatureWaitList: Promise<Quad[] | undefined>[] = []
             for (let quad of store.getStore().getQuads(null, null, null, null)) {
                 if (predicates.includes(quad.predicate.value)) {
@@ -204,12 +213,14 @@ export class Builder {
 
     signExternal(url: string, canonicalize = false): Builder {
         if (!this.session) { 
-            log({ level: "warn", message: 'No session found, starting new session!'})
+            log({ level: "info", message: 'no session found, starting new session!'})
             this.startSession()
             return this.loadRDF(url)
         }
+        if (!this.signatureOptions) { log({ level: "error", message: 'Cannot create signature, incomplete signatureOptions parameter!' }); return this; }
 
         const signRDFExternal = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
+            if (!this.signatureOptions) throw new Error('This should not happen!')
             if (canonicalize && await isRDFResource(url)) {
                 const quads = await tryCreateRemoteRDFResourceSignature(url, this.signatureOptions)
                 if(quads) store.addQuads(quads)
@@ -223,11 +234,49 @@ export class Builder {
         return this
     }
 
+    /**
+     * Create global signature for all graphs and commit. Makes no sense to go further on this than the global signature.
+     */
+    async signAllAndCommit(): Promise<Store> {
+        if (!this.session) { 
+            log({ level: "info", message: 'no session found, nothing to sign!' }); 
+            return new Store(); 
+        }
+        if (!this.signatureOptions) { 
+            log({ level: "error", message: 'Cannot create signature, incomplete signatureOptions parameter!' }); 
+            return this.commit(); 
+        }
+
+        const signAllGraphs = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
+            if (!this.signatureOptions) throw new Error('This should not happen!')
+            
+            // Create dataset of ALL graphs in the store
+            const dataset = createDatasetQuads(store.getStore(), store.getStore().getGraphs(null, null, null) as Quad_Graph[])
+            const graph =  blankNode()
+            const quads = dataset.quads.map(t => quad(t.subject, t.predicate, t.object, graph))
+            store.addQuads(quads)
+            // store.scopeOutDatasetFocus(dataset.id, graph)
+
+            const signatureQuads = await tryCreateDatasetSignature(store.getStore(), dataset.id, this.signatureOptions)
+            if (signatureQuads) { store.addQuads(signatureQuads) }
+            else { log({ level: "warn", message: `Signature creation failed for ${dataset.id}.`}); return store; }
+           
+            return store
+        }
+        this.session.addAsyncTask(signAllGraphs)
+
+        // commit all tasks
+        const committedFocusStore = await this.session.commitToStore()
+        const combinedStore = committedFocusStore.getStore()
+        combinedStore.addQuads(committedFocusStore.getUntrackedStore().getQuads(null, null, null, null))
+        return combinedStore
+    }
+
     policy(options: {duration?: string, purpose?: string[], assigner?: string, assignee?: string}) {
         let {duration, purpose, assigner, assignee} = options
         if (!duration) duration = "P7D"
 
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to set policy over!'}); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to set policy over!'}); return this; }
 
         const createPolicy = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
@@ -249,14 +298,14 @@ export class Builder {
     }
 
     provenance(options?: { origin?: string }) {
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to add provenance over!'}); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to add provenance over!'}); return this; }
         
         const origin = options && options.origin
 
         const addProvenance = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
             if (!focus) { log({ level: "warn", message: 'Cannot create signature of undefined focus node!'}); return store; }
-            const issuer = this.signatureOptions.issuer as NamedNode;
+            const issuer = this.signatureOptions?.issuer as NamedNode;
             const provenance = await createProvenanceTriples({
                 origin: origin ? namedNode(origin) : undefined,
                 issuer,
@@ -272,7 +321,7 @@ export class Builder {
     }
 
     dataset() {
-        if (!this.session) { log({ level: "warn", message: 'No session found, cannot generate dataset!'}); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, cannot generate dataset!'}); return this; }
 
         const createDataset = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const dataset = createDatasetQuads(store.getStore(), store.getAddedGraphs() as Quad_Graph[])

@@ -5,6 +5,7 @@ import { evaluateConstraintCompliance, PURPOSE } from "./PolicyEvaluator";
 
 import { DataFactory } from "../../../software/src";
 import { log } from "..";
+import { getResourceAsQuadArray } from "@dexagod/rdf-retrieval";
 
 const { namedNode, blankNode, literal, quad, defaultGraph } = DataFactory
 
@@ -126,6 +127,24 @@ export class Evaluator {
         return this;
     }
 
+
+    fetchRDF(url: string) : Evaluator {
+        if (this.session === undefined){
+            this.startSession();
+            return this.fetchRDF(url)
+        }
+        this.session?.addAsyncTask(async (store: Store) => {
+            try {
+                const res = await getResourceAsQuadArray(url) as Quad[]
+                store.addQuads(res);
+            } catch (e) {
+                console.error(`Error retrieving RDF resource located at ${url}: ${(e as Error).message}` )
+            }
+            return store;
+        })
+        return this;
+    }
+
     evaluateSignatures(options:{ trustedIssuers: string[] }) {
         if (this.session === undefined){
             throw new Error('Cannot evaluate signatures. Initialize a session and add data to be evaluated first!')
@@ -139,7 +158,7 @@ export class Evaluator {
             const verificationResults = await verifyAllSignatures(store);
             for (let result of verificationResults) {
                 if (!result.result) {
-                    log({level: "warn", message: `Failed to verify signature of ${result.target.value}`})
+                    log({level: "info", message: `Failed to verify signature of ${result.target.value}`})
                     continue;
                 }
                 // This is for when we will use reasoning
@@ -147,7 +166,7 @@ export class Evaluator {
                 if (options.trustedIssuers 
                     && options.trustedIssuers.length 
                     &&!options.trustedIssuers.includes(result.issuer.value)){
-                        log({level: "warn", message: `Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target.value}`})
+                        log({level: "info", message: `Failed to verify signature, issuer ${result.issuer.value} is untrusted for the signature of ${result.target.value}`})
                         continue;
                 }
                 const target = result.target

@@ -38,6 +38,7 @@ export const PackOntology = {
     timestamp: PACKAGEONTOLOGYNAMESPACE+"timestamp",
     origin: PACKAGEONTOLOGYNAMESPACE+"origin",
     issuer: PACKAGEONTOLOGYNAMESPACE+"issuer",
+    assertedAt: PACKAGEONTOLOGYNAMESPACE+"assertedAt"
 }
 
 export const VerificationOntology = {
@@ -115,9 +116,10 @@ export function unpackRDFList(store: Store, base: Quad_Subject, graph?: Quad_Gra
     else return [ first [0] ].concat(unpackRDFList(store, rest[0] as Quad_Subject, graph))
 }
 
-export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad_Graph) => { graphName: NamedNode | BlankNode, metadata?: Quad[] }) {
+export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad_Graph) => { graphName: NamedNode | BlankNode, metadata?: Triple[] }, options?: { namePredicate?: string, origin?: string }) {
     const storeGraphs = store.getGraphs(null, null, null)
     const graphList = [... new Set(storeGraphs)]
+    const metadataGraphId = blankNode();
 
     const defaultStrategy = (graphName: Quad_Graph) => { 
         const bn = blankNode();
@@ -128,12 +130,28 @@ export function renameAllGraphsInStore(store: Store, strategy?: (graphName: Quad
     if (!strategy) strategy = defaultStrategy
 
     for (let graphTerm of graphList) {
+        if (graphTerm.equals(DataFactory.defaultGraph())) continue
         const { graphName, metadata } = strategy(graphTerm)
-        const renamed = renameGraph(store, graphTerm, graphName)
-        if (metadata) store.addQuads(metadata)
-            
-        if (graphTerm.equals(DataFactory.defaultGraph()))
-            newDefaultGraph = renamed.graph;
+        const { graph } = renameGraph(store, graphTerm, graphName)
+        if (metadata) store.addQuads(metadata.map(t => quad(t.subject, t.predicate, t.object, metadataGraphId)));
+        if (options?.namePredicate && graphTerm.termType === "NamedNode") {
+            store.addQuad(graph, namedNode(options.namePredicate), graphTerm as Quad_Object, metadataGraphId)
+        }
+        if (options?.origin) {
+            store.addQuad(graph, namedNode(PackOntology.origin), namedNode(options.origin), metadataGraphId)
+        }
+        newDefaultGraph = graph
+    }
+    // convert default graph
+    if (store.getQuads(null, null, null, defaultGraph())?.length) {
+        const { graphName, metadata } = strategy(defaultGraph())
+        const { graph } = renameGraph(store, defaultGraph(), graphName)
+        if (metadata) store.addQuads(metadata.map(t => quad(t.subject, t.predicate, t.object, metadataGraphId)));
+        if (options?.origin) {
+            store.addQuad(graph, namedNode(PackOntology.origin), namedNode(options.origin), metadataGraphId)
+            store.addQuad(graph, namedNode(PackOntology.assertedAt), namedNode(options.origin), metadataGraphId)
+        }
+        newDefaultGraph = graph
     }
 
     return { store, defaultGraph: newDefaultGraph }

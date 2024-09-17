@@ -4,12 +4,9 @@ import { getResourceAsQuadArray } from "@dexagod/rdf-retrieval"
 import { Quad } from "n3"
 
 program
-	.name('rdf containment proxy')
-	.description('Setup a proxy server that provides RDF metadata on retrieval of RDF resources')
-	.version('0.1.0');
-
-program
-	.description('Process a packaged RDF body')
+	.name('LDES builder CLI interface')
+	.description('LDES builder')
+	.version('0.1.0')
 	.argument('<url>', 'URL of the packaged RDF resource to retrieve')
 	.option('-t, --trusted-verification', 'verify only metadata in signed trusted graphs (except signatures!)')
 	.option('-s, --validate-signatures <issuer...>', 'Validate signatures and match with list of trusted issuers')

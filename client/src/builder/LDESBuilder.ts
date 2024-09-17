@@ -150,7 +150,7 @@ export class LDESBuilder {
      */
     setMemberContents(quads: Quad[], contentDataset?: boolean): LDESBuilder {
         if (!this.session) { 
-            log({ level: "warn", message: 'No session found, starting new session!' })
+            log({ level: "info", message: 'no session found, starting new session!' })
             this.buildMember()
             return this.setMemberContents(quads)
         }
@@ -178,7 +178,7 @@ export class LDESBuilder {
         let {duration, purpose, assigner, assignee} = options
         if (!duration) duration = "P7D"
 
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to set policy over!'}); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to set policy over!'}); return this; }
 
         const createPolicy = async (store: FocusRDFStore): Promise<FocusRDFStore> => {
             const focus = store.getFocus();
@@ -200,7 +200,7 @@ export class LDESBuilder {
     }
 
     setMemberProvenance(options?: { origin?: string }): LDESBuilder {
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to add provenance over!'}); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to add provenance over!'}); return this; }
         
         const origin = options && options.origin
 
@@ -223,7 +223,7 @@ export class LDESBuilder {
     }
 
     setMemberSignature(signatureOptions?: PublicSignatureOptions): LDESBuilder {
-        if (!this.session) { log({ level: "warn", message: 'No session found, nothing to sign!' }); return this; }
+        if (!this.session) { log({ level: "info", message: 'no session found, nothing to sign!' }); return this; }
 
         let chosenSignatureOptions: SignatureOptions = this.signatureOptions
         if (signatureOptions) {
