@@ -1,10 +1,10 @@
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign/dist";
 import { serializeTrigFromStore, SignatureOptions } from "../../software/src";
-import { Builder, PublicSignatureOptions } from "./builder/Builder";
+import { Builder, PublicSignatureOptions } from "../src/builder/Builder";
 import { webcrypto } from "crypto"
-import { Evaluator } from "./evaluator/Evaluator";
+import { Evaluator } from "../src/evaluator/Evaluator";
 import { DataFactory } from "../../software/src";
-import { LDESBuilder } from "./builder/LDESBuilder";
+import { LDESBuilder } from "../src/builder/LDESBuilder";
 import { FOAF, RDF } from "@inrupt/vocab-common-rdf";
 
 
@@ -61,9 +61,9 @@ async function test() {
                 quad(namedNode('https://pod.rubendedecker.be/profile/card#me'), namedNode(FOAF.name), literal('Ruben'), blankNode('RubenProfileGraph')),
                 quad(namedNode('https://pod.rubendedecker.be/profile/card#me'), namedNode(FOAF.name), literal('Dexa'), blankNode('RubenSecondaryProfile')) 
             ], false)
-            // .setMemberProvenance({origin: "https://pod.rubendedecker.be/profile/card"})
-            // .setMemberPolicy({duration: "P1D", purpose: [DPV+"ServiceProvision", DPV+"ServicePersonalisation"]})
-            // .setMemberSignature(rubenSignOptions)
+            .setMemberProvenance({origin: "https://pod.rubendedecker.be/profile/card"})
+            .setMemberPolicy({duration: "P1D", purpose: [DPV+"ServiceProvision", DPV+"ServicePersonalisation"]})
+            .setMemberSignature(rubenSignOptions)
             .commitMember();
 
 
@@ -72,9 +72,9 @@ async function test() {
             .setMemberContents([ 
                 quad(namedNode('https://josd.github.io/card.ttl#me'), namedNode(FOAF.name), literal('Jos')),
             ], false)
-            // .setMemberProvenance({origin: "https://josd.github.io/card.ttl"})
-            // .setMemberPolicy({duration: "P1M", purpose: [DPV+"ServiceProvision"]})
-            // .setMemberSignature(josSignOptions)
+            .setMemberProvenance({origin: "https://josd.github.io/card.ttl"})
+            .setMemberPolicy({duration: "P1M", purpose: [DPV+"ServiceProvision"]})
+            .setMemberSignature(josSignOptions)
             .commitMember();
 
         const page = await builder.commitPage()

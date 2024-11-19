@@ -1,10 +1,10 @@
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign/dist";
 import { serializeTrigFromStore, SignatureOptions } from "../../software/src";
-import { Builder, PublicSignatureOptions } from "./builder/Builder";
+import { Builder, PublicSignatureOptions } from "../src/builder/Builder";
 import { webcrypto } from "crypto"
-import { Evaluator } from "./evaluator/Evaluator";
+import { Evaluator } from "../src/evaluator/Evaluator";
 import { DataFactory } from "../../software/src";
-import { LDESBuilder } from "./builder/LDESBuilder";
+import { LDESBuilder } from "../src/builder/LDESBuilder";
 import { FOAF, RDF } from "@inrupt/vocab-common-rdf";
 
 
@@ -51,42 +51,63 @@ async function test() {
         verificationMethod: josPublic
     }
 
+    const randomEntity = () => `http://example.org/ns/entity/${(Math.random() + 1).toString(36).substring(7)}`
+    const randomName = () => `${(Math.random() + 1).toString(36).substring(7)}`
+    const randomGraph = () => `${(Math.random() + 1).toString(36).substring(2)}`
 
-    const builder = await new LDESBuilder('https://pod.rubendedecker.be/scholar/ldes/', 'page', ldesSignOptions)
+    const o1 = "https://pod.rubendedecker.be/"
+    const o2 = "https://josd.github.io/"
+    const p1 = DPV+"ServiceProvision"
+    const p2 = DPV+"ServicePersonalisation"
+    const p3 = DPV+"NonCommercialPurpose"
 
+    const randomItem = (items: any[]) => items[Math.floor(Math.random() * items.length)];
 
-        // build a member Ruben
+    const builder = await new LDESBuilder('https://pod.rubendedecker.be/scholar/ldes2/', 'page', ldesSignOptions)
+
+    for (let i = 0; i < 100; i++) {
+
         builder.buildMember()
-            .setMemberContents([ 
-                quad(namedNode('https://pod.rubendedecker.be/profile/card#me'), namedNode(FOAF.name), literal('Ruben'), blankNode('RubenProfileGraph')),
-                quad(namedNode('https://pod.rubendedecker.be/profile/card#me'), namedNode(FOAF.name), literal('Dexa'), blankNode('RubenSecondaryProfile')) 
-            ])
-            .setMemberProvenance({origin: "https://pod.rubendedecker.be/profile/card"})
-            .setMemberPolicy({duration: "P1D", purpose: [DPV+"ServiceProvision", DPV+"ServicePersonalisation"]})
-            .setMemberSignature(rubenSignOptions)
-            .commitMember();
+            const memberQuads = []
+            for (let i = 0; i < Math.floor(Math.random()*5) + 1; i++) {
+                memberQuads.push(
+                    quad(namedNode(randomEntity()), namedNode('http://example.org/ns/hasNumber'), literal(randomName()), blankNode(randomGraph()))
+                )
+            }
+            
+            const setProv = Math.random() < 0.5
+            const setPol = Math.random() < 0.5
+            const setSign = Math.random() < 0.5
+            const wrapContent = (setProv || setPol || setSign)
+            builder.setMemberContents(memberQuads, wrapContent)
+            
+            if (setProv) {
+                builder.setMemberProvenance({origin: randomItem([o1, o2])})
+            }
+            if (setPol) {
+                builder.setMemberPolicy({
+                    duration: `P${Math.floor(Math.random()*7) + 1}D`, 
+                    purpose: [randomItem([p1, p2, p3])]
+                })
+            }
+            if (setSign) {
+                builder.setMemberSignature(randomItem([rubenSignOptions, josSignOptions]))
+            }
+            
+            builder.commitMember();
+
+    }
+        
+    const page = await builder.commitPage()
 
 
-        // build a member Jos
-        builder.buildMember()
-            .setMemberContents([ 
-                quad(namedNode('https://josd.github.io/card.ttl#me'), namedNode(FOAF.name), literal('Jos')),
-            ])
-            .setMemberProvenance({origin: "https://josd.github.io/card.ttl"})
-            .setMemberPolicy({duration: "P1M", purpose: [DPV+"ServiceProvision"]})
-            .setMemberSignature(josSignOptions)
-            .commitMember();
-
-        const page = await builder.commitPage({createSignatures: true})
-
-
-        console.log(``)
-        console.log(`Content for ${page.url}`)
-        console.log(``)
-        console.log(`#####################`)
-        console.log(``)
-        console.log(``)
-        console.log(page.trig)
+    // console.log(``)
+    // console.log(`Content for ${page.url}`)
+    // console.log(``)
+    // console.log(`#####################`)
+    // console.log(``)
+    // console.log(``)
+    console.log(page.trig)
 
     process.exit() 
     // Idk but it hangs a second or 2 after evaluating everything instantly. 

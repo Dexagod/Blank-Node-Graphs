@@ -7,7 +7,7 @@ import { webcrypto } from "crypto"
 import { program } from "commander"
 
 import { DataFactory } from "../../software/src";
-import { isRDFResource, log, processRDFResource } from "../src";
+import { isRDFResource, log, processNonRDFResource, processRDFResource } from "../src";
 const { namedNode, blankNode, literal, quad, triple, defaultGraph } = DataFactory
 
 program
@@ -71,7 +71,9 @@ async function startProxy(port: number, signaturePredicates: string[], canonical
                 res.setHeader('Content-Type', 'application/trig')
                 res.send(updatedContent)
             } else {
-                request(requestUrl).pipe(res);
+                const contextInfo = await processNonRDFResource(requestUrl, signatureOptions)
+                const headerString = contextInfo.replace(/\r?\n|\r/g, '').replace(/\s+/g, ' ')
+                request(requestUrl).pipe(res).setHeader('Meta', headerString);
             }  
         } catch (e) {
             log({level: "error", message: (e as Error).message })

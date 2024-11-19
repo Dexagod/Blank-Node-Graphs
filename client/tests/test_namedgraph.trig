@@ -1,0 +1,38 @@
+_:n3-1 {
+	<#me> a <http://xmlns.com/foaf/0.1/Person>;
+		<http://xmlns.com/foaf/0.1/givenName> "Jos"@nl;
+		<http://xmlns.com/foaf/0.1/familyName> "De Roo"@nl;
+		<http://www.w3.org/2006/vcard/ns#title> "R&D Engineer";
+		<http://xmlns.com/foaf/0.1/mbox> <mailto:jos.deroo@ugent.be>;
+		<http://xmlns.com/foaf/0.1/img> <https://josd.github.io/images/jdroo.jpg>;
+		<http://xmlns.com/foaf/0.1/homepage> <https://josd.github.io/>;
+		<http://www.w3.org/ns/solid/terms#oidcIssuer> <https://josdroo.pod.knows.idlab.ugent.be/>, <https://pod.playground.solidlab.be/>;
+		<http://www.w3.org/ns/solid/terms#oidcIssuerRegistrationToken> "ed8a17dd-23d4-45a7-a15d-a36aa0f9fc20";
+		<https://data.knows.idlab.ugent.be/person/office/#hasAvailabilityCalendar> _:b0_n3-2;
+		<http://xmlns.com/foaf/0.1/account> _:b0_n3-3.
+	_:b0_n3-2 <http://schema.org/url> "https://josdroo.pod.knows.idlab.ugent.be/availability".
+	_:b0_n3-3 a <https://data.knows.idlab.ugent.be/person/office/#GitHubAccount>;
+		<http://xmlns.com/foaf/0.1/accountName> "josd";
+		<http://xmlns.com/foaf/0.1/accountServiceHomepage> <https://github.com/>
+}
+_:n3-0 {
+	_:n3-1 <https://example.org/ns/what_does_my_graph_name_mean> <https://josd.github.io/card.ttl>;
+		<https://example.org/ns/pack/origin> <https://pod.rubendedecker.be/scholar/jos_profile.trig>
+}
+_:n3-5 {
+	_:n3-2 a <https://example/org/ns/bng/Collection>;
+		<https://example/org/ns/bng/contains> ( _:n3-1 _:n3-0 )
+}
+_:n3-8 {
+	_:n3-6 a <https://example.org/ns/sign/DataIntegrityProof>;
+		<https://example.org/ns/sign/created> "2024-09-17T18:03:09.322Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+		<https://example.org/ns/sign/issuer> <https://pod.rubendedecker.be/profile/card#me>;
+		<https://example.org/ns/sign/cryptosuite> "ECDSA";
+		<https://example.org/ns/sign/verificationMethod> <https://pod.rubendedecker.be/keys/test_public>;
+		<https://example.org/ns/sign/proofPurpose> "assertionMethod";
+		<https://example.org/ns/sign/proofValue> "ssb6JT83mSctNMu6Xtp8mHSHaf9s3UjsgvMGYsK0kk5IzF+Z46gYM1A1MFjwwoxYyczMHtfNNjKwiLUi92GyMhRYLD4xcR4lpAjpV+7dBjxyH+ENHCRhsZPt4AP2j+1H";
+		<https://example.org/ns/sign/target> _:n3-2;
+		<https://example.org/ns/sign/contentManipulation> _:n3-7.
+	_:n3-7 <https://example.org/ns/sign/hashMethod> "SHA-512";
+		<https://example.org/ns/sign/canonicalizationMethod> "c14n"
+}

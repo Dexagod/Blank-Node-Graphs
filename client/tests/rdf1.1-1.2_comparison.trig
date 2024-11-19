@@ -1,0 +1,177 @@
+
+###################################
+# Blank Node Graph implementation #
+###################################
+
+_:content {
+    <https://pod.rubendedecker.be/profile/card#me> a foaf:Person;
+        foaf:name "Ruben D.";
+        foaf:img <https://pod.rubendedecker.be/profile/img.png>.
+}
+
+_:img_signature {
+	_:img_s a sign:DataIntegrityProof;
+        sign:proofValue "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G";
+		sign:target <https://pod.rubendedecker.be/profile/img.png>.
+}
+
+_:content_collection {
+	_:c_c a bng:Collection;
+        bng:contains ( _:content _:img_signature ).
+}
+
+_:provenance {
+    _:content_collection prov:origin <https://pod.rubendedecker.be/>.
+    _:content_collection prov:author <https://pod.rubendedecker.be/profile/card#me>.
+}
+
+_:full_collection {
+	_:f_c a bng:Collection;
+        bng:contains ( _:provenance _:content _:img_signature).
+}
+
+_:full_signature {
+	_:img_s a sign:DataIntegrityProof;
+		sign:proofValue "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G";
+		sign:target _:f_c.
+}
+
+###################################
+# Reification - naive translation #
+###################################
+
+# Keeping track of the triples as lists of rtc:Collections retains the metadata when processing
+
+@prefix rtc: <https://example.org/reifiedTripleCollection#
+
+_:content a rtc:Collection;
+    rtc:contains <<( <https://pod.rubendedecker.be/profile/card#me> a foaf:Person )>>;
+    rtc:contains <<( <https://pod.rubendedecker.be/profile/card#me> foaf:name "Ruben D." )>>;
+    rtc:contains <<( <https://pod.rubendedecker.be/profile/card#me> foaf:img <https://pod.rubendedecker.be/profile/img.png> )>>.
+
+_:img_signature a rtc:Collection;
+    rtc:contains <<( _:img_s a <https://example.org/ns/sign/DataIntegrityProof> )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/proofValue> "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G" )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/target> <https://pod.rubendedecker.be/profile/img.png> )>>.
+
+_:content_collection a rtc:Collection;
+    rtc:contains <<( _:c_c a bng:Collection; )>>;
+    rtc:contains <<( _:c_c bng:contains ( _:content _:img_signature ) )>>;
+
+_:provenance a rtc:Collection;
+    rtc:contains <<( _:content_collection prov:origin <https://pod.rubendedecker.be/> )>>;
+    rtc:contains <<( _:content_collection prov:author <https://pod.rubendedecker.be/profile/card#me> )>>.
+
+_:full_collection a rtc:Collection;
+    rtc:contains <<( _:f_c a bng:Collection; )>>;
+    rtc:contains <<( _:f_c bng:contains ( _:content _:img_signature _:provenance ) )>>;
+
+_:img_signature a rtc:Collection;
+    rtc:contains <<( _:img_s a <https://example.org/ns/sign/DataIntegrityProof> )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/proofValue> "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G" )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/target> _:fc )>>.
+
+
+###############################################
+# Reification - preventing nested collections #
+###############################################
+
+# The annoying thing here becomes, you HAVE to sign the collection triples as well, 
+# as these are required for the attaching of metadata (the <g> component in quads you would also sign with C14N)
+# Note that these collections could ALSO be lists instead of contains relations
+
+@prefix rtc: <https://example.org/reifiedTripleCollection#
+
+# START OF SIGNED TRIPLES
+_:content a rtc:Collection;
+    rtc:contains <<( <https://pod.rubendedecker.be/profile/card#me> a foaf:Person )>>;
+    rtc:contains <<( <https://pod.rubendedecker.be/profile/card#me> foaf:name "Ruben D." )>>;
+    rtc:contains <<( <https://pod.rubendedecker.be/profile/card#me> foaf:img <https://pod.rubendedecker.be/profile/img.png> )>>.
+
+_:img_signature a rtc:Collection;
+    rtc:contains <<( _:img_s a <https://example.org/ns/sign/DataIntegrityProof> )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/proofValue> "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G" )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/target> <https://pod.rubendedecker.be/profile/img.png> )>>.
+
+_:provenance a rtc:Collection;
+    rtc:contains <<( _:content prov:origin <https://pod.rubendedecker.be/> )>>;
+    rtc:contains <<( _:content prov:author <https://pod.rubendedecker.be/profile/card#me> )>>.
+    rtc:contains <<( _:img_signature prov:origin <https://pod.rubendedecker.be/> )>>;
+    rtc:contains <<( _:img_signature prov:author <https://pod.rubendedecker.be/profile/card#me> )>>.
+# END OF SIGNED TRIPLES
+
+_:img_signature a rtc:Collection;
+    rtc:contains <<( _:img_s a <https://example.org/ns/sign/DataIntegrityProof> )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/proofValue> "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G" )>>;
+    rtc:contains <<( _:img_s <https://example.org/ns/sign/target> ( _:content _:img_signature _:provenance ) )>>.
+
+# Does this break something?
+_:provenance <something> <something_else>
+
+=> signatures MUST BE SPECIFIED to include only specific triples defined on the collection through rigid semantics.
+
+
+#################################
+# List-based Triple Collections #
+#################################
+
+
+# START OF SIGNED TRIPLES
+_:content a rtc:Collection; rtc:contains (
+    << <https://pod.rubendedecker.be/profile/card#me> a foaf:Person >>
+    << <https://pod.rubendedecker.be/profile/card#me> foaf:name "Ruben D." >>
+    << <https://pod.rubendedecker.be/profile/card#me> foaf:img <https://pod.rubendedecker.be/profile/img.png> >>
+).
+
+_:img_signature a rtc:Collection; rtc:contains (
+    << _:img_s a sign:DataIntegrityProof >>
+    << _:img_s sign:proofValue "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G" >>
+    << _:img_s sign:target <https://pod.rubendedecker.be/profile/img.png> >>
+).
+
+_:provenance a rtc:Collection; rtc:contains (
+    << _:content prov:origin <https://pod.rubendedecker.be/> >>;
+    << _:content prov:author <https://pod.rubendedecker.be/profile/card#me> >>
+    << _:img_signature prov:origin <https://pod.rubendedecker.be/> >>
+    << _:img_signature prov:author <https://pod.rubendedecker.be/profile/card#me> >>
+).
+# END OF SIGNED TRIPLES
+
+_:img_signature a rtc:Collection; rtc:contains (
+    << _:img_s a sign:DataIntegrityProof >>
+    << _:img_s sign:proofValue "PSPGoZi7QCRTFRsBvCLf/SW...UpYNAefOiM85QCSu35G" >>
+    << _:img_s sign:target ( _:content _:img_signature _:provenance ) >>
+).
+
+# Does this break something?
+_:provenance <something> <something_else>
+
+=> signatures MUST BE SPECIFIED to include only specific triples defined on the collection through rigid semantics.
+
+
+
+
+########
+# Note #
+########
+
+
+_:content_collection a rtc:Collection;
+    rtc:contains << _:c_c a bng:Collection >>;
+    rtc:contains << _:c_c bng:contains ( _:content _:img_signature ) >>;
+
+is equivalent to 
+
+_:content_collection a rtc:Collection;
+    rtc:contains << _:c_c a bng:Collection; >>;
+    rtc:contains << _:c_c bng:contains _:l1 >>;
+    rtc:contains << _:l1 rdf:first _:content >>;
+    rtc:contains << _:l1 rdf:rest _:l2 >>;
+    rtc:contains << _:l2 rdf:first _:img_signature >>;
+    rtc:contains << _:l2 rdf:rest rdf:nil >>.
+
+
+
+
+
+

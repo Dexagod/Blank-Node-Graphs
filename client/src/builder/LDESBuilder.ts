@@ -273,7 +273,7 @@ export class LDESBuilder {
         // flush members list
         this.members = [];
         
-        return { trig: await serializeTrigFromStore(store, true), url: url }
+        return { trig: await serializeTrigFromStore(store, false), url: url }
     }
 
 

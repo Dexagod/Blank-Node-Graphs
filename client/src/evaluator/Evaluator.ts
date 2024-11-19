@@ -39,7 +39,7 @@ class Session {
         return finalStore
     }
 
-    async commitToString(store?: Store, flatten?: boolean): Promise<String> {
+    async commitToString(store?: Store, flatten?: boolean): Promise<string> {
         const finalStore = await this.commit(store)
         if (flatten) {
             return await flattenTrig(finalStore)

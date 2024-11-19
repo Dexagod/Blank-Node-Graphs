@@ -1,8 +1,8 @@
 import { importKey, importPrivateKey } from "@jeswr/rdfjs-sign/dist";
 import { serializeTrigFromStore, SignatureOptions } from "../../software/src";
-import { Builder, PublicSignatureOptions } from "./builder/Builder";
+import { Builder, PublicSignatureOptions } from "../src/builder/Builder";
 import { webcrypto } from "crypto"
-import { Evaluator } from "./evaluator/Evaluator";
+import { Evaluator } from "../src/evaluator/Evaluator";
 import { DataFactory } from "../../software/src";
 
 const DPV = "https://w3id.org/dpv#";

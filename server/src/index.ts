@@ -140,6 +140,33 @@ export async function processRDFResource(url: string, singPredicates: string[], 
 }
 
 
+
+export async function processNonRDFResource(url: string, signatureOptions: SignatureOptions) {
+
+  const publicSignatureOptions = { 
+      privateKey: signatureOptions.privateKey,
+      issuer: signatureOptions.issuer.value, 
+      verificationMethod: signatureOptions.verificationMethod,
+  }
+  const builder = new Builder(publicSignatureOptions);
+
+  const responseStore = await builder
+      .startSession()
+      .signExternal(url, false)
+      .dataset()
+      .sign()
+      .provenance({origin: url})
+      .policy({duration: "P7D", purpose: [DPV+"NonCommercialPurpose", DPV+"ServicePersonalisation", DPV+"ServiceProvision"]})
+      .dataset()
+      .sign()
+      .commit()
+
+  const resultString = serializeTrigFromStore(responseStore, true)
+  return resultString
+}
+
+
+
 export async function isRDFResource(url: string) {
 	const head = await fetch(url, {method: "HEAD"})
     const contentTypeHeader = head.headers.get('Content-Type') || "text/turtle"
